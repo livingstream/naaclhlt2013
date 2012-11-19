@@ -5,6 +5,7 @@
 \documentclass[11pt,letterpaper]{article}
 \usepackage{naaclhlt2013}
 \usepackage{times}
+\usepackage{graphicx}
 \usepackage{latexsym}
 \setlength\titlebox{6.5cm}    % Expanding the titlebox
 
@@ -23,17 +24,17 @@
     This second version clarifies the procedure for 
     submitting for double-blind reviewing.}}
 
-\author{Author 1\\
-	    XYZ Company\\
+\author{Kun Li\\
+	    University of Florida\\
 	    111 Anywhere Street\\
 	    Mytown, NY 10000, USA\\
-	    {\tt author1@xyz.org}
+	    {\tt kli@cise.ufl.edu}
 	  \And
-	Author 2\\
-  	ABC University\\
+	Christian Grant\\
+  	University of Florida\\
   	900 Main Street\\
   	Ourcity, PQ, Canada A1A 1T2\\
-  {\tt author2@abc.ca}}
+  {\tt cgrant@cise.ufl.edu}}
 
 \date{}
 
@@ -50,20 +51,12 @@
 \end{abstract}
 
 \section{Introduction}
+Conditional random field(CRF) is a type of discriminative undirected probabilistic graphical model.
+Linear-chain CRFs are special CRFs which assume that the next state depends only on the current state. 
+Linear-chain CRFs achieve start of art accuracy in some real world natural language processing tasks such
+as part of speech tagging(POS) and named entity resolution(NER).
 
-The following instructions are directed to authors of papers accepted
-for publication in the NAACL HLT 2013 proceedings.  All authors are required
-to adhere to these specifications. Authors are required to provide 
-a Portable Document Format (PDF) version of
-their papers.  The proceedings will be printed on US-Letter paper.
-Authors from countries in which access to word-processing systems is
-limited should contact the publication chairs as soon as possible.
-
-\paragraph{What's new} This year, grayscale readability will be enforced for all accepted
-papers (\S\ref{ssec:accessibility}).  Apart from this, the style files and camera-ready requirements
-are unchanged from last year.
-
-\section{General Instructions}
+\section{In-database Implementation}
 
 Manuscripts must be in two-column format.  Exceptions to the
 two-column format include the title, as well as the 
@@ -90,44 +83,53 @@ conference, printed single-sided, plus two (2) pages for references
 maximum number of pages).  Do not number the pages.
 
 The review process is double-blind, so do not include any author information (names, addresses) when submitting a paper for review.  However, you should allocate space for the names and addresses so that they will fit in the final (accepted) version.  This is best done by either providing fake or blank names and addresses (as shown in this paper).
+\subsection{System Architecture}
+\begin{center}
+\includegraphics[height=15em]{system.png}
+\end{center}
 
-\subsection{Electronically-available resources}
+\subsection{Part-of-speech Tagging}
+Part-of-speech tagging, also called grammatical tagging or word-category disambiguation is the process of assigning 
+a part of speech to each word in a sentence. POS has been widely used in information retrieval and text to speech. 
+There are two distinct methods for 
+POS task: rule-based and stochastic.
+In rule-based method, large collection of rules are defined to indentify the tag. Stochastic method is based on 
+probabilistic graphic models such as hidden markov models and conditional random fields. In practice, 
+conditional random fields are approved to achieve the state of art accuracy.
 
-NAACL HLT provides this description in \LaTeX2e{} ({\tt naaclhlt2013.tex}) and PDF
-format ({\tt naaclhlt2013.pdf}), along with the \LaTeX2e{} style file used to
-format it ({\tt naaclhlt2013.sty}) and an ACL bibliography style ({\tt naaclhlt2013.bst}).
-These files are all available at
-{\tt http://naacl2013.naacl.org}.  A Microsoft Word
-template file ({\tt naaclhlt2013.dot}) is also available at the same URL. We
-strongly recommend the use of these style files, which have been
-appropriately tailored for the NAACL HLT 2013 proceedings.
+\subsubsection{Feature Extraction}
+The Feature Extraction module provides functionality for basic text-analysis
+tasks such as part-of-speech (POS) tagging and named-entity resolution.
+At present, six feature types are implemented.
+\begin{itemize}
+\item Edge Feature: transition feature that encodes the transition feature weight from current label to next label.
+\item Start Feature: fired when the current token is the first token in a sentence.
+\item End Feature: fired when the current token is the last token in a sentence.
+\item Word Feature: fired when the current token is observed in the trained dictionary.
+\item Unknown Feature: fired when the current token is not observed in the trained dictionary for at least certain times.
+\item Regex Feature: fired when the current token can be matched by the regular expression.
+\end{itemize}
+
+Advantages of extracting features using SQL statements:
+\begin{itemize}
+\item [$\star$] Decoupling the feature extraction and other code.
+\item [$\star$] Compared with procedure language, SQL is much more easier to understand.
+\item [$\star$] Storing all the features in tables avoids recomputing of features over iterations. It also boosts the performance.
+\item [$\star$] SQL is naivelly paralleled.
+\end{itemize}
 
 
-\subsection{Format of Electronic Manuscript}
+\subsubsection{Parallel Linear-chain CRF Training}A Microsoft Word
+\subsubsection{Parallel Linear-chain CRF Inference}
+ The Viterbi algorithm is to find the top-k most likely labelings of a document 
+for CRF models. 
+We chose to implement a Python UDF that uses iterations to drive the Viterbi inference. 
+In Greenplum, Viterbi can be run in parallel over different subsets 
+of the document on a multi-core machine.
+
+\subsection{Entity Detection}
 \label{sect:pdf}
 
-For the production of the electronic manuscript you must use Adobe's
-Portable Document Format (PDF). This format can be generated from
-postscript files: on Unix systems, you can use {\tt ps2pdf} for this
-purpose; under Microsoft Windows, you can use Adobe's Distiller, or
-if you have cygwin installed, you can use {\tt dvipdf} or
-{\tt ps2pdf}.  Note 
-that some word processing programs generate PDF which may not include
-all the necessary fonts (esp. tree diagrams, symbols). When you print
-or create the PDF file, there is usually an option in your printer
-setup to include none, all or just non-standard fonts.  Please make
-sure that you select the option of including ALL the fonts.  {\em
-  Before sending it, test your {\/\em PDF} by printing it from a
-  computer different from the one where it was created}. Moreover,
-some word processor may generate very large postscript/PDF files,
-where each page is rendered as an image. Such images may reproduce
-poorly.  In this case, try alternative ways to obtain the postscript
-and/or PDF.  One way on some systems is to install a driver for a
-postscript printer, send your document to the printer specifying
-``Output to a file'', then convert the file to PDF.
-
-For reasons of uniformity, Adobe's {\bf Times Roman} font should be
-used. In \LaTeX2e{} this is accomplished by putting
 
 \begin{quote}
 \begin{verbatim}
@@ -300,29 +302,34 @@ In an effort to accommodate the color-blind (as well as those printing to paper)
 readability for all accepted papers will be enforced.  Color is not forbidden, but authors should
 ensure that tables and figures do not rely solely on color to convey critical distinctions.
 
-\section{Length of Submission}
+\section{Performance Evaluation}
 \label{sec:length}
 
+\subsection{Scalability}
 The NAACL HLT 2013 main conference accepts submissions of long papers
 and short papers.  The maximum length of a long paper manuscript is
 eight (8) pages of content and two (2) additional pages of references
 \emph{only} (appendices count against the eight pages, not the
 additional two pages).  The maximum length of a short paper manuscript
-is four (4) pages and two (2) additional pages of references.  For
-both long and short papers, all illustrations, references, and
+is four (4) pages and two (2) additional pages of references.  
+
+\subsection{Comparisons with the State of Art}
+
+For both long and short papers, all illustrations, references, and
 appendices must be accommodated within these page limits, observing
 the formatting instructions given in the present document.  Papers
 that do not conform to the specified length and formatting
 requirements are subject to be rejected without review.
 
-\section{Double-blind review process}
+\section{User Case: Tweet Analysis}
 \label{sec:blind}
 
 As the reviewing will be blind, the paper must not include the authors' names and affiliations. Furthermore, self-references that reveal the author's identity, e.g., ``We previously showed (Smith, 1991) ...'' must be avoided. Instead, use citations such as ``Smith previously showed (Smith, 1991) ...'' Papers that do not conform to these requirements will be rejected without review. In addition, please do not post your submissions on the web until after the review process is complete.
 
 \section*{Acknowledgments}
-
-Do not number the acknowledgment section.
+Christan Grant is funded by a National
+Science Foundation Graduate Research Fellowship under Grant No. DGE-0802270.
+This work was supported by a gift from EMC Greenplum.
 
 \begin{thebibliography}{}
 

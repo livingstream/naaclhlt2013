@@ -32,30 +32,31 @@
     This second version clarifies the procedure for 
     submitting for double-blind reviewing.}}
 
-\author{Kun Li\\
+\author{Kun Li, Christan Grant, Daisy Zhe Wang\\
 	    University of Florida\\
 	    111 Anywhere Street\\
 	    Gainesville, FL 32608, USA\\
 	    {\tt kli@cise.ufl.edu}
 	  \And
-	Christian Grant\\
-  	University of Florida\\
+	George Chitouras\\
+  	Greenplum/EMC\\
   	900 Main Street\\
 	    Gainesville, FL 32608, USA\\
-  {\tt cgrant@cise.ufl.edu}}
+  {\tt george.chitouras@emc.com}}
 
 \date{}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-  This document contains the instructions for preparing a camera-ready
-  manuscript for the proceedings of NAACL HLT 2013.  The document itself conforms
-  to its own specifications, and is therefore an example of what
-  your manuscript should look like.  Papers are required to conform to
-  all the directions reported in this document.  Also included are instructions for
-  submission to the conference, which are similar to the camera-ready instructions
-  but remove author-identifying information.
+  In this paper we introduce MADText a statistical text analytics module 
+  contributed to MADLib which is an open source project for statistical and parallel library
+  for in-database analytics.
+  Instead of extracting text features on fly, we precomputed the text features.
+  MADText can do part-of-speech tagging and entity detection. 
+  We show that our package is linearly scalable and outperform the state of art packages.
+  Lastly, we show we can our MADText to do near real time hot topics discovery over all the states of USA. 
+  We can analyze 1 million tweets in 3 minutes using a machine with 32 cores.
 \end{abstract}
 
 \section{Introduction}

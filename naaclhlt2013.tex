@@ -7,19 +7,27 @@
 \usepackage{times}
 \usepackage{graphicx}
 \usepackage{latexsym}
+\usepackage{listings}
+\usepackage{algorithmicx}
+\lstset{
+		basicstyle=\ttfamily\footnotesize,       % the size of the fonts that are used for the code
+		numbers=left,                   % where to put the line-numbers
+		numberblanklines=false
+		numbersep=1em,                  % how far the line-numbers are from the code
+		basewidth=0.52em,
+		tabsize=4,  		% sets default tabsize to 2 spaces
+		xleftmargin=\leftmargini
+      }
+\renewcommand*\thelstnumber{\the\value{lstnumber}:}
+% END lstlisting environments
+
+\lstnewenvironment{sql}[1][]{\lstset{language=SQL,gobble=4,emphstyle=\textit,#1}}{}
+
+
 \setlength\titlebox{6.5cm}    % Expanding the titlebox
 
 \title{Large-scale Statistical Text Analytics in Relational Databases\Thanks{This
-    document has been adapted from the instructions for earlier ACL
     and NAACL proceedings, including those for 
-    NAACL-HLT-12 by Nizar Habash and William Schuler,
-    NAACL-HLT-10 by Claudia Leacock and Richard Wicentowski,
-    NAACL-HLT-09 by Joakim Nivre and Noah Smith, 
-    for ACL-05 by Hwee Tou Ng and Kemal Oflazer,
-    for ACL-02 by Eugene Charniak and Dekang Lin, and earlier ACL and
-    EACL formats.  Those versions were written by several people,
-    including John Chen, Henry S. Thompson and Donald Walker.
-    Additional elements were taken from the formatting instructions of
     the {\em International Joint Conference on Artificial Intelligence}.  
     This second version clarifies the procedure for 
     submitting for double-blind reviewing.}}
@@ -27,13 +35,13 @@
 \author{Kun Li\\
 	    University of Florida\\
 	    111 Anywhere Street\\
-	    Mytown, NY 10000, USA\\
+	    Gainesville, FL 32608, USA\\
 	    {\tt kli@cise.ufl.edu}
 	  \And
 	Christian Grant\\
   	University of Florida\\
   	900 Main Street\\
-  	Ourcity, PQ, Canada A1A 1T2\\
+	    Gainesville, FL 32608, USA\\
   {\tt cgrant@cise.ufl.edu}}
 
 \date{}
@@ -118,8 +126,76 @@ Advantages of extracting features using SQL statements:
 \item [$\star$] SQL is naivelly paralleled.
 \end{itemize}
 
+\begin{itemize}
+\item $SQL_1$:\\
+\begin{lstlisting}[language=SQL,gobble=4]
+    SELECT doc2.start_pos, doc2.doc_id, 'E.', ARRAY[doc1.label, doc2.label]
+    FROM   segmenttbl doc1, segmenttbl doc2
+    WHERE  doc1.doc_id = doc2.doc_id AND doc1.start_pos+1 = doc2.start_pos
+\end{lstlisting}
 
-\subsubsection{Parallel Linear-chain CRF Training}A Microsoft Word
+\item $SQL_2$:\\
+\begin{lstlisting}[language=SQL,gobble=4]
+    SELECT start_pos, doc_id, 'R_' || name, ARRAY[-1, label]
+    FROM  regextbl, segmenttbl
+    WHERE seg_text ~ pattern
+\end{lstlisting}
+\end{itemize}
+
+\paragraph{Build the feature dictionary and assign each feature with a unique feature id}
+\begin{itemize}
+\item $SQL_3$\\ 
+\begin{lstlisting}[language=SQL,gobble=4]
+    INSERT INTO tmp_featureset(f_name, feature) 
+    SELECT DISTINCT f_name, feature
+    FROM   tmp1_feature;
+    INSERT INTO featureset(f_index, f_name, feature) 
+    SELECT nextval('seq')-1, f_name, feature
+    FROM   tmp_featureset;
+\end{lstlisting}
+\end{itemize}
+
+\paragraph{Generate sparse\_r table}
+\begin{itemize}
+\item $SQL_3$\\ 
+\begin{lstlisting}[language=SQL,gobble=4]
+    INSERT INTO rtbl(start_pos,doc_id,feature)
+    SELECT start_pos, doc_id, array_cat(fset.feature, 
+			ARRAY[f_index,start_pos, 
+			CASE WHEN tmp1_feature.feature = fset.feature THEN 1
+			ELSE 0 END] )
+    FROM   tmp1_feature, featureset fset
+    WHERE  tmp1_feature.f_name = fset.f_name AND fset.f_name <> 'E.';
+\end{lstlisting}
+\end{itemize}
+
+
+\subsubsection{Parallel Linear-chain CRF Training}
+
+\paragraph{LBFGS Convex Optimization}
+The limited-memory BFGS(L-BFGS) is the limited memory variation of the Broyden-Fletcher-Goldfarb-Shanno(BFGS) algorithm which
+is the state of art of large scale non constraint convex optimization method.
+We translate the in-memory Java implementation to C++ in-database implementation using Eigen support.
+Eigen vector and Eigen matrix are used instead of the plain one dimentional and two dimentional arrays.
+In the Java in-memory implementation, it defines many static variables defined and shared between the interations.
+However, in the MADlib implementation, we define these variables in the state object.
+Before each iteration of L-BFGS optimization, we need to initialize the L-BFGS with the current state object. 
+At the end of each iteration, we need to dump the updated variables to the database state for next iteration.
+
+\begin{lstlisting}[language=SQL,gobble=4]
+    select crf_train_data('/path/to/trainingdataset')
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL,gobble=4]
+    select crf_train_fgen('train_segmenttbl', 'crf_regex','crf_dictionary', 
+    'featuretbl','crf_feature_dic')
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL,gobble=4]
+    select lincrf('featuretbl','spars_r','dense_m','sparse_m','f_size',45, 
+    'crf_feature_dic','crf_feature',20)
+\end{lstlisting}
+
 \subsubsection{Parallel Linear-chain CRF Inference}
  The Viterbi algorithm is to find the top-k most likely labelings of a document 
 for CRF models. 
@@ -127,28 +203,33 @@ We chose to implement a Python UDF that uses iterations to drive the Viterbi inf
 In Greenplum, Viterbi can be run in parallel over different subsets 
 of the document on a multi-core machine.
 
+The $vcrf\_top\_label$ is implemented sequentially and each function call will finish labeling of one document. 
+The inference is paralledl in the level of document. We use a SQL statment to drive the inference of all documents.
+So, the CRF inference is naivelly parallel. 
+\begin{lstlisting}[language=SQL,gobble=4]
+        SELECT doc_id, vcrf_top1_label(mfactors.score, rfactors.score)
+        FROM   mfactors,rfactors
+\end{lstlisting}
+
+\paragraph{Inference}
+\begin{lstlisting}[language=SQL,gobble=4]
+    select crf_test_data('/path/to/testingdataset')
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL,gobble=4]
+    select crf_test_fgen('test_segmenttbl',
+    'crf_dictionary','crf_label','crf_regex',
+    'crf_feature','viterbi_mtbl','viterbi_rtbl')
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL,gobble=4]
+    select vcrf_label('test_segmenttbl', 
+    'viterbi_mtbl','viterbi_rtbl',
+    'crf_label','extraction')
+\end{lstlisting}
+
+
 \subsection{Entity Detection}
-\label{sect:pdf}
-
-
-\begin{quote}
-\begin{verbatim}
-\usepackage{times}
-\usepackage{latexsym}
-\end{verbatim}
-\end{quote}
-in the preamble.
-
-Additionally, it is of utmost importance to specify the {\bf
-  US-Letter format} (8.5in $\times$ 11in) when formatting the paper.
-When working with {\tt dvips}, for instance, one should specify {\tt
-  -t letter}.
-
-Print-outs of the PDF file on US-Letter paper should be identical to the
-hardcopy version.  If you cannot meet the above requirements about the
-production of your electronic submission, please contact the
-publication chairs above  as soon as possible.
-
 
 \subsection{Layout}
 \label{ssec:layout}
@@ -214,112 +295,15 @@ the title.  If Times Roman is unavailable, use {\bf Computer Modern
 Note that the latter is about 10\% less dense than Adobe's Times Roman
 font.
 
-\subsection{Sections}
-
-{\bf Headings}: Type and label section and subsection headings in the
-style shown on the present document.  Use numbered sections (Arabic
-numerals) in order to facilitate cross references. Number subsections
-with the section number and the subsection number separated by a dot,
-in Arabic numerals. 
-
-{\bf Citations}: Citations within the text appear
-in parentheses as~\cite{Gusfield:97} or, if the author's name appears in
-the text itself, as Gusfield~\shortcite{Gusfield:97}. In \LaTeX2e, the former is accomplished using
-\verb|\cite| and the latter with \verb|\shortcite| or \verb|\newcite|.
-Append lowercase letters to the year in cases of ambiguities.  
-Treat double authors as in~\cite{Aho:72}, but write as 
-in~\cite{Chandra:81} when more than two authors are involved. 
-Collapse multiple citations as in~\cite{Gusfield:97,Aho:72}.
-
-\textbf{References}: Gather the full set of references together under
-the heading {\bf References}; place the section before any Appendices,
-unless they contain references. Arrange the references alphabetically
-by first author, rather than by order of occurrence in the text.
-Provide as complete a citation as possible, using a consistent format,
-such as the one for {\em Computational Linguistics\/} or the one in the 
-{\em Publication Manual of the American 
-Psychological Association\/}~\cite{APA:83}.  Use of full names for
-authors rather than initials is preferred.  A list of abbreviations
-for common computer science journals can be found in the ACM 
-{\em Computing Reviews\/}~\cite{ACM:83}.
-
-The \LaTeX{} and Bib\TeX{} style files provided roughly fit the
-American Psychological Association format, allowing regular citations, 
-short citations and multiple citations as described above.
-
-{\bf Appendices}: Appendices, if any, directly follow the text and the
-references (but see above).  Letter them in sequence and provide an
-informative title: {\bf Appendix A. Title of Appendix}.
-
-\textbf{Acknowledgment} sections should go as a last (unnumbered) section immediately
-before the references.  
-
-\subsection{Footnotes}
-
-{\bf Footnotes}: Put footnotes at the bottom of the page. They may
-be numbered or referred to by asterisks or other
-symbols.\footnote{This is how a footnote should appear.} Footnotes
-should be separated from the text by a line.\footnote{Note the
-line separating the footnotes from the text.}  Footnotes should be in 9 point font.
-
-\subsection{Graphics}
-
-{\bf Illustrations}: Place figures, tables, and photographs in the
-paper near where they are first discussed, rather than at the end, if
-possible.  Wide illustrations may run across both columns and should be placed at
-the top of a page. Color illustrations are discouraged, unless you have verified that 
-they will be understandable when printed in black ink. 
-
-\begin{table}
-\begin{center}
-\begin{tabular}{|l|rl|}
-\hline \bf Type of Text & \bf Font Size & \bf Style \\ \hline
-paper title & 15 pt & bold \\
-author names & 12 pt & bold \\
-author affiliation & 12 pt & \\
-the word ``Abstract'' & 12 pt & bold \\
-section titles & 12 pt & bold \\
-document text & 11 pt  &\\
-abstract text & 10 pt & \\
-captions & 10 pt & \\
-bibliography & 10 pt & \\
-footnotes & 9 pt & \\
-\hline
-\end{tabular}
-\end{center}
-\caption{\label{font-table} Font guide. }
-\end{table}
-
-{\bf Captions}: Provide a caption for every illustration; number each one
-sequentially in the form:  ``Figure 1. Caption of the Figure.'' ``Table 1.
-Caption of the Table.''  Type the captions of the figures and 
-tables below the body, using 10 point text.  
-
-\subsection{Accessibility}
-\label{ssec:accessibility}
-
-In an effort to accommodate the color-blind (as well as those printing to paper), grayscale
-readability for all accepted papers will be enforced.  Color is not forbidden, but authors should
-ensure that tables and figures do not rely solely on color to convey critical distinctions.
-
 \section{Performance Evaluation}
 \label{sec:length}
 
 \subsection{Scalability}
-The NAACL HLT 2013 main conference accepts submissions of long papers
-and short papers.  The maximum length of a long paper manuscript is
-eight (8) pages of content and two (2) additional pages of references
-\emph{only} (appendices count against the eight pages, not the
-additional two pages).  The maximum length of a short paper manuscript
-is four (4) pages and two (2) additional pages of references.  
+\includegraphics[height=9.9em,width=10em]{extraction.png}
+\includegraphics[height=9.9em,width=10em]{viterbi.png}
 
 \subsection{Comparisons with the State of Art}
-
-For both long and short papers, all illustrations, references, and
-appendices must be accommodated within these page limits, observing
-the formatting instructions given in the present document.  Papers
-that do not conform to the specified length and formatting
-requirements are subject to be rejected without review.
+Compared with PCRF, CRF++
 
 \section{User Case: Tweet Analysis}
 \label{sec:blind}

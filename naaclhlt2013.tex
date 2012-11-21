@@ -8,7 +8,22 @@
 \usepackage{graphicx}
 \usepackage{latexsym}
 \usepackage{listings}
-\usepackage{algorithmicx}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\newlength{\alglabelwidth}
+\newcommand{\alginput}[1]{%
+\par\noindent%
+\settowidth{\alglabelwidth}{\emph{Output:}}%
+\makebox[\alglabelwidth][l]{\emph{Input:}} \begin{tabular}[t]{l} #1 \end{tabular}}
+\newcommand{\algoutput}[1]{%
+\par\noindent%
+\settowidth{\alglabelwidth}{\emph{Output:}}%
+\makebox[\alglabelwidth][l]{\emph{Output:}} \begin{tabular}[t]{l} #1 \end{tabular}}
+\newcommand{\algprecond}[1]{%
+\par\noindent\textit{Initialization/Precondition: #1}}
+
+
 \lstset{
 		basicstyle=\ttfamily\footnotesize,       % the size of the fonts that are used for the code
 		numbers=left,                   % where to put the line-numbers
@@ -77,21 +92,6 @@ figures or tables.  Type single-spaced.  Do not number the pages.
 Start all pages directly under the top margin.  See the guidelines
 later regarding formatting the first page.
 
-%% If the paper is produced by a printer, make sure that the quality
-%% of the output is dark enough to photocopy well.  It may be necessary
-%% to have your laser printer adjusted for this purpose.  Papers that are too
-%% faint to reproduce well may not be included.
-
-%% {\bf Do not print page numbers on the manuscript.}  Write them lightly
-%% on the back of each page in the upper left corner along with the
-%% (first) author's name.
-
-The maximum length of a manuscript is eight (8) pages for the main
-conference, printed single-sided, plus two (2) pages for references
-(see Section~\ref{sec:length} for additional information on the
-maximum number of pages).  Do not number the pages.
-
-The review process is double-blind, so do not include any author information (names, addresses) when submitting a paper for review.  However, you should allocate space for the names and addresses so that they will fit in the final (accepted) version.  This is best done by either providing fake or blank names and addresses (as shown in this paper).
 \subsection{System Architecture}
 \begin{center}
 \includegraphics[height=15em]{system.png}
@@ -172,6 +172,109 @@ Advantages of extracting features using SQL statements:
 
 
 \subsubsection{Parallel Linear-chain CRF Training}
+\begin{algorithm} 
+\caption{CRF training$(z_{1:M})$} \label{alg:CRF training}
+\alginput{Observation set $z_{1:M}$,\\
+convergence criterion $\mathit{Convergence}()$,\\
+start strategy $\mathit{Start}()$,\\
+initialization strategy $\mathit{Initialization}()$,\\
+transition strategy $\mathit{Transition}()$,\\
+finalization strategy $\mathit{Finalization}()$}
+\algoutput{Coefficients $w \in R^N$}
+\algprecond{$iteration = 0, diag = 1$}
+\begin{algorithmic}[1]
+\State $w_{new} \gets \mathit{Start}(z_{1:M})$
+\Repeat
+        \State $w_{old} \gets w_{new}$
+        \State $\mathit{state} \gets \mathit{Initialization}(w_{new})$
+\For{$m \in 1..M$} \Comment{Single entry in the observation set}
+\State $\mathit{state} \gets \mathit{Transition}(\mathit{state}, z_m)$
+                \Comment{Computing gradient and log-likelihood.}
+\EndFor
+\State $w_{new} \gets Finalization(\mathit{state})$ \Comment{Mainly invoke L-BFGS convex solver}
+\Until{$Convergence(w_{new}, g_{new}, \mathit{iteration})$}
+    \State \Return $w_{new}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Programming Model.}
+We provide above the algorithm of parallel CRF training strategy, in the fashion of the selected programming model supported by MADlib (mainly user-defined aggregate).
+
+\paragraph{Parallelism.}
+The outer loop is inherently sequential over multiple iterations.
+The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
+The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
+Simple model averaging are used to merge two states.
+A merge function is not explicitly added to the pseudocode for simplicity.
+The finalization function invokes the L-BFGS convex solver to get a new solution. L-BFGS is sequential, but very fast.
+Experiments show that the speed-up ration approaches the number of segments configured in the Greenplum database.
+
+\paragraph{Convergence criterion.}
+Usually, the following conditions are combined by AND, OR, or NOT.
+\begin{enumerate}
+    \item The norm of gradient divided by the norm of coefficient drops below a given threshold.
+    \item The maximum number of iterations is reached.
+    \item There could be more.
+\end{enumerate}
+
+\paragraph{Start strategy.}
+In most cases, zeros are used unless otherwise specified.
+
+\paragraph{Transition strategies.}
+This function contains the logic of computing the gradient and log-likelihood for each tuple using the forward-backward
+algorithm. The algorithms will be discussed in the following sections.
+
+\begin{algorithm}
+\caption{transition-lbfgs$(\mathit{state}, z_m)$} \label{alg:transition-lbfgs}
+\alginput{Transition state $\mathit{state}$,\\
+observation entry $z_m$,\\
+gradient function $\mathit{Gradient}()$}
+\algoutput{Transition state $\mathit{state}$}
+\begin{algorithmic}[1]
+    \State $\{state.g,state.loglikelihood\} \gets \mathit{Gradient}(\mathit{state}, z_m)$
+        \Comment{using forward-backward algorithm to calculate gradient and loglikelihood}
+    \State $\mathit{state}.num\_rows \gets \mathit{state}.num\_rows + 1$
+    \State \Return $\mathit{state}$
+\end{algorithmic}
+\end{algorithm}
+
+
+\paragraph{Merge strategies.}
+The merge function simply sums the gradient and log-likelihood over all training documents
+\begin{algorithm}
+\caption{merge-lbfgs$(\mathit{state_1}, \mathit{state_2})$} \label{alg:merge-lbfgs}
+\alginput{Transition state $\mathit{state_1}$,\\
+Transition state $\mathit{state_2}$}
+\algoutput{Transition state $\mathit{state_{new}}$}
+\begin{algorithmic}[1]
+    \State $\mathit{state_{new}}.g \gets \mathit{state_1}.g + \mathit{state_2}.g$
+    \State $\mathit{state_{new}}.loglikelihood \gets \mathit{state_1}.loglikelihood + \mathit{state_2}.loglikelihood$
+    \State \Return $\mathit{state_{new}}$
+\end{algorithmic}
+\end{algorithm}
+
+
+\paragraph{Finalization strategy.}
+The finalization function invokes the L-BFGS convex solver to get a new coefficent vector.\\
+
+\begin{algorithm}
+\caption{finalization-lbfgs$(state)$} \label{alg:CRF training}
+\alginput{Transition state $state$,\\
+LBFGS $\mathit{lbfgs}()$}
+\algoutput{Transition state $state$}
+\begin{algorithmic}[1]
+        \State $\{state.g,state.loglikelihood\} \gets penalty(state.g,state.loglikelihood)$ \Comment{To avoid overfitting, add penalization}
+        \State $\{state.g,state.loglikelihood\}\gets-\{state.g,state.loglikelihood\}$ \Comment{negation for maximization}
+        \State LBFGS instance($state)$ \Comment{initialize the L-BFGS instance with previous state}
+        \State instance.$lbfgs()$ \Comment{invoke the L-BFGS convex solver}
+        \State instance.save\_state$(state)$ \Comment{save updated variables to the state for next iteration}
+        \State \Return $state$
+\end{algorithmic}
+\end{algorithm}
+
+Feeding with current solution, gradient, log-likelihood, etc., the L-BFGS will ouput a new solution.
+To avoid overfitting, a penalization function is needed. We choose to penalize the log-likelihood with a spherical Gaussian weight prior.
+Also, L-BFGS is to maximum objective, so we need to negate the gradient vector and log-likelihood to fit our needs in order minimize the log-likehood.
 
 \paragraph{LBFGS Convex Optimization}
 The limited-memory BFGS(L-BFGS) is the limited memory variation of the Broyden-Fletcher-Goldfarb-Shanno(BFGS) algorithm which
@@ -230,71 +333,15 @@ So, the CRF inference is naivelly parallel.
 \end{lstlisting}
 
 
+\[
+V(i,y) =
+\begin{cases}
+\max_{y^\prime}(V(i-1,y^\prime)) + \textstyle \sum_{k=1}^K \lambda_kf_k(y,y^\prime,x_i), & \text{if } i\ge0 \\
+0, & \text{if } i=-1.
+\end{cases}
+\]
+
 \subsection{Entity Detection}
-
-\subsection{Layout}
-\label{ssec:layout}
-
-Format manuscripts two columns to a page, in the manner these
-instructions are formatted. The exact dimensions for a page on US-letter
-paper are:
-
-\begin{itemize}
-\item Left and right margins: 1 inch
-\item Top margin: 1 inch
-\item Bottom margin: 1 inch
-\item Column width: 3.15 inches
-\item Column height: 9 inches
-\item Gap between columns: 0.2 inches
-\end{itemize}
-
-\noindent Papers should not be submitted on any other paper size. Exceptionally,
-authors for whom it is \emph{impossible} to format on US-Letter paper,
-may format for \emph{A4} paper. In this case, they should keep the \emph{top}
-and \emph{left} margins as given above, use the same column width,
-height and gap, and modify the bottom and right margins as necessary.
-Note that the text will no longer be centered.
-
-\subsection{The First Page}
-\label{ssec:first}
-
-Center the title, author's name(s) and affiliation(s) across both
-columns (or, in the case of initial submission, space for the names). 
-Do not use footnotes for affiliations.  Do not include the
-paper ID number assigned during the submission process. 
-Use the two-column format only when you begin the abstract.
-
-{\bf Title}: Place the title centered at the top of the first page, in
-a 15 point bold font.  (For a complete guide to font sizes and styles, see Table~\ref{font-table}.)
-Long title should be typed on two lines without
-a blank line intervening. Approximately, put the title at 1in from the
-top of the page, followed by a blank line, then the author's names(s),
-and the affiliation on the following line.  Do not use only initials
-for given names (middle initials are allowed). Do not format surnames
-in all capitals (e.g., ``Bangalore,'' not ``BANGALORE'').  The affiliation should
-contain the author's complete address, and if possible an electronic
-mail address. Leave about 0.75in between the affiliation and the body
-of the first page.
-
-{\bf Abstract}: Type the abstract at the beginning of the first
-column.  The width of the abstract text should be smaller than the
-width of the columns for the text in the body of the paper by about
-0.25in on each side.  Center the word {\bf Abstract} in a 12 point
-bold font above the body of the abstract. The abstract should be a
-concise summary of the general thesis and conclusions of the paper.
-It should be no longer than 200 words.  The abstract text should be in 10 point font.
-
-{\bf Text}: Begin typing the main body of the text immediately after
-the abstract, observing the two-column format as shown in 
-the present document.  Do not include page numbers.
-
-{\bf Indent} when starting a new paragraph. For reasons of uniformity,
-use Adobe's {\bf Times Roman} fonts, with 11 points for text and 
-subsection headings, 12 points for section headings and 15 points for
-the title.  If Times Roman is unavailable, use {\bf Computer Modern
-  Roman} (\LaTeX2e{}'s default; see section \ref{sect:pdf} above).
-Note that the latter is about 10\% less dense than Adobe's Times Roman
-font.
 
 \section{Performance Evaluation}
 \label{sec:length}
@@ -309,7 +356,6 @@ Compared with PCRF, CRF++
 \section{User Case: Tweet Analysis}
 \label{sec:blind}
 
-As the reviewing will be blind, the paper must not include the authors' names and affiliations. Furthermore, self-references that reveal the author's identity, e.g., ``We previously showed (Smith, 1991) ...'' must be avoided. Instead, use citations such as ``Smith previously showed (Smith, 1991) ...'' Papers that do not conform to these requirements will be rejected without review. In addition, please do not post your submissions on the web until after the review process is complete.
 
 \section*{Acknowledgments}
 Christan Grant is funded by a National

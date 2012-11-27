@@ -41,10 +41,7 @@
 
 \setlength\titlebox{6.5cm}    % Expanding the titlebox
 
-\title{Large-scale Statistical Text Analytics in Relational Databases\Thanks{This
-    and NAACL proceedings, including those for 
-    the {\em International Joint Conference on Artificial Intelligence}.  
-    This second version clarifies the procedure for 
+\title{Large-scale Statistical Text Analytics in RDBMS\Thanks{This
     submitting for double-blind reviewing.}}
 
 \author{Kun Li, Christan Grant, Daisy Zhe Wang\\
@@ -53,7 +50,7 @@
 	    Gainesville, FL 32608, USA\\
 	    {\tt kli@cise.ufl.edu}
 	  \And
-	George Chitouras\\
+	Sunny Khatri, George Chitouras\\
   	Greenplum/EMC\\
   	900 Main Street\\
 	    Gainesville, FL 32608, USA\\
@@ -68,30 +65,58 @@
   contributed to MADLib which is an open source project for statistical and parallel library
   for in-database analytics.
   Instead of extracting text features on fly, we precomputed the text features.
-  MADText can do part-of-speech tagging and entity detection. 
+  We show MADText do parallel CRF training and parallel CRF learning, part-of-speech tagging and entity detection. 
   We show that our package is linearly scalable and outperform the state of art packages.
   Lastly, we show we can our MADText to do near real time hot topics discovery over all the states of USA. 
   We can analyze 1 million tweets in 3 minutes using a machine with 32 cores.
 \end{abstract}
 
 \section{Introduction}
+Besides the data accounting functionality of relational database management system, database vendors, researchers and 
+engineers are pushing in-database analytics functionality to RDBMS.
+With the increasing popularity of MapReduce systems eg. Google's MapReduce,Apache Hadoop, Spark,
+Big comapines are using MapReduce system to analyze big data such as software logs,
+transaction data.
+Traditional business intelligence has to pull out of the transactional data(OLTP)
+from databases into other massive data warehouses(OLAP) to analyze the data.
+However, it is time consuming to pull out the data from the databases and use other exteral tools.
+An emerging trend is to add data analysis tools to the database.
+On the other side, the embarassingly parallel power can be leveraged.
+MADlib is an open source libaray for scalable in-database analytics. It provides parallel implementation of 
+machine learning algorithms.
+Text analytics has gains has more and more attention due to the social networks.
+Tweats and Facebook generate tons of natural text data. 
+The text data has been anaylized by politictions and bussiness companies.
+2012 US politiations and Lumia920.
+The text data contains value information need to 
+extracted. Start-up compaines are analyzing text data to discover the populairty of centain topic and do sentiment
+analysis. 
+We enable statistical text analyisis in parallel databases.
+Specially we support part of speech tagging and entity dections for natural language processing.
 Conditional random field(CRF) is a type of discriminative undirected probabilistic graphical model.
 Linear-chain CRFs are special CRFs which assume that the next state depends only on the current state. 
 Linear-chain CRFs achieve start of art accuracy in some real world natural language processing tasks such
 as part of speech tagging(POS) and named entity resolution(NER).
 
+\section{Related Work}
+Our work is inspired by the work of Feng, Kumar which defines a unified architecutre for in-RDBMS analytics.
+The paper points out that most of the machine learning algorithms confined to a unified achitectures in RDBMS.
+Basically, all these statistical machine learning algorithms has multiple runs has the maximum likelihood objective 
+functions. The gradient vector and loglikelihood can be calculated parallelly using user defined aggregates supported in 
+most of the RDBMS. User defined aggregates is MapReduce like framework to do parallel processing. 
+It also defines a driver function which drive the multi-pass optimization process until the converge criterion is met.
+There are many existing conditional random filed tookit for NLP tasks such as PCRFs.
+Wang's work on CRF inference
+Limited-memory BFGS  
+We design novel relational schemas to store all the inputs, features, outputs. 
+ 
+
 \section{In-database Implementation}
-
-Manuscripts must be in two-column format.  Exceptions to the
-two-column format include the title, as well as the 
-authors' names and complete
-addresses (only in the final version, not in the version submitted for review), 
-which must be centered at the top of the first page (see
-the guidelines in Subsection~\ref{ssec:first}), and any full-width
-figures or tables.  Type single-spaced.  Do not number the pages.
-Start all pages directly under the top margin.  See the guidelines
-later regarding formatting the first page.
-
+We use SQL clauses to genearte all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
+All the features can be stored in two schemas. M and R. M table stores the features involes two states. R table store all the single state features.
+After the feature extraction, we use user-defined aggregates to calcuate the gradient and log-likelihood parallel using the transition function.
+We also implment the LBFGS in database. Difference between in database and in memory implemntaiont. 
+  
 \subsection{System Architecture}
 \begin{center}
 \includegraphics[height=15em]{system.png}

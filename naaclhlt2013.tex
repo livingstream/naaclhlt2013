@@ -61,61 +61,47 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-  In this paper we introduce MADText a statistical text analytics module 
-  contributed to MADLib which is an open source project for statistical and parallel library
-  for in-database analytics.
-  Instead of extracting text features on fly, we precomputed the text features.
-  We show MADText do parallel CRF training and parallel CRF learning, part-of-speech tagging and entity detection. 
-  We show that our package is linearly scalable and outperform the state of art packages.
-  Lastly, we show we can our MADText to do near real time hot topics discovery over all the states of USA. 
-  We can analyze 1 million tweets in 3 minutes using a machine with 32 cores.
+In this paper we introduce MADText a statistical text analytics module contributed to MADLib, 
+which is an open source project for statistical and parallel library for in-database analytics.  
+We show that we can use SQLs instead of lengthy procedure code to extract all types of text features.  
+We design novel schema to store the single state features and two states features.   
+By using these novel schemas, we can avoid re-computing features for the same token over and over again.  
+As far as we know, MADText is the first toolkit to statistical text analysis in relational database management system (RDMS).  
+In the application level, we can support part-of-speech tagging(POS), named entity resolution and entity detection.  
+We show that our package is linearly scalable and outperform the state of art packages by avoid re-computing features for the same token. 
+Lastly, we show that MADText can do nearly real time hot topics discovery for each statesof USA using streaming Tweets.
 \end{abstract}
 
 \section{Introduction}
-Besides the data accounting functionality of relational database management system, database vendors, researchers and 
-engineers are pushing in-database analytics functionality to RDBMS.
-With the increasing popularity of MapReduce systems eg. Google's MapReduce,Apache Hadoop, Spark,
-Big comapines are using MapReduce system to analyze big data such as software logs,
-transaction data.
-Traditional business intelligence has to pull out of the transactional data(OLTP)
-from databases into other massive data warehouses(OLAP) to analyze the data.
-However, it is time consuming to pull out the data from the databases and use other exteral tools.
-An emerging trend is to add data analysis tools to the database.
-On the other side, the embarassingly parallel power can be leveraged.
-MADlib is an open source libaray for scalable in-database analytics. It provides parallel implementation of 
-machine learning algorithms.
+With the increasing popularity of Map Reduce systems e.g. Google's MapReduce, Apache Hadoop, Spark, All big companies are using 
+MapReduce system to analyze big data such as software logs, transaction data. Traditional business intelligence has to 
+pull out of the transactional data(OLTP) from databases into other massive data warehouses(OLAP) to analyze the data.
+However, it is time consuming to pull out the data from the databases and use other external tools.
+Besides the data accounting functionality of RDBMS, in-database analytics functionality has been pushing into RDBMS to 
+enable a deep insight into the data by the database vendors.   An emerging trend is to add data analysis tools to the database. 
+On the other side, the embarrassingly parallel power can be leveraged.
+MADlib is an open source library for scalable in-database analytics. It provides parallel implementation of machine learning algorithms.
 Text analytics has gains has more and more attention due to the social networks.
-Tweats and Facebook generate tons of natural text data. 
-The text data has been anaylized by politictions and bussiness companies.
-2012 US politiations and Lumia920.
-The text data contains value information need to 
-extracted. Start-up compaines are analyzing text data to discover the populairty of centain topic and do sentiment
-analysis. 
-We enable statistical text analyisis in parallel databases.
-Specially we support part of speech tagging and entity dections for natural language processing.
-Conditional random field(CRF) is a type of discriminative undirected probabilistic graphical model.
-Linear-chain CRFs are special CRFs which assume that the next state depends only on the current state. 
-Linear-chain CRFs achieve start of art accuracy in some real world natural language processing tasks such
-as part of speech tagging(POS) and named entity resolution(NER).
+Tweets and Facebook generate tons of natural text data.
+Politicians and business companies have analyzed the text data.
+2012 US politician and Lumia920. The text data contains value information need to be extracted. Start-up companies are 
+analyzing text data to discover the popularity of specific topic and do sentiment analysis. We enable statistical text analysis in 
+parallel databases. Especially we support part of speech tagging and entity detections for natural language processing. Conditional random field(CRF) 
+is a type of discriminative undirected probabilistic graphical model. Linear-chain CRFs are special CRFs, which assume that the next state depends only 
+on the current state. Linear-chain CRFs achieve start of art accuracy in some real world natural language processing tasks such as POS and NER.
 
 \section{Related Work}
-Our work is inspired by the work of Feng, Kumar which defines a unified architecutre for in-RDBMS analytics.
-The paper points out that most of the machine learning algorithms confined to a unified achitectures in RDBMS.
-Basically, all these statistical machine learning algorithms has multiple runs has the maximum likelihood objective 
-functions. The gradient vector and loglikelihood can be calculated parallelly using user defined aggregates supported in 
-most of the RDBMS. User defined aggregates is MapReduce like framework to do parallel processing. 
-It also defines a driver function which drive the multi-pass optimization process until the converge criterion is met.
-There are many existing conditional random filed tookit for NLP tasks such as PCRFs.
-Wang's work on CRF inference
-Limited-memory BFGS  
-We design novel relational schemas to store all the inputs, features, outputs. 
- 
+Our work is inspired by the work of Feng, Kumar which defines a unified architecture for in-RDBMS analytics.
+The paper points out that most of the machine learning algorithms confined to a unified architectures in RDBMS.
+Basically, most of these statistical machine learning algorithms has multiple runs has the maximum likelihood objective functions. The gradient vector and log likelihood can be calculated parallelly using user-defined aggregates supported in most of the RDBMS. User defined aggregates is MapReduce like framework to do parallel processing.
+It also defines a driver function which drive the multi-pass optimization process until converge criterion is met.
+There are many existing conditional random filed toolkit for NLP tasks such as PCRFs. Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
 
 \section{In-database Implementation}
-We use SQL clauses to genearte all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
-All the features can be stored in two schemas. M and R. M table stores the features involes two states. R table store all the single state features.
-After the feature extraction, we use user-defined aggregates to calcuate the gradient and log-likelihood parallel using the transition function.
-We also implment the LBFGS in database. Difference between in database and in memory implemntaiont. 
+We use SQL clauses to generate all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
+All the features can be stored in two schemas. M and R. M table stores the features involves two states. R table store all the single state features.
+After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood parallel using the transition function.
+We also implement the LBFGS in database. Difference between in database and in memory implementation.
   
 \subsection{System Architecture}
 \begin{center}

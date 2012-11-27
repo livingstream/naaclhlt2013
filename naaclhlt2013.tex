@@ -66,29 +66,24 @@ which is an open source project for statistical and parallel library for in-data
 We show that we can use SQLs instead of lengthy procedure code to extract all types of text features.  
 We design novel schema to store the single state features and two states features.   
 By using these novel schemas, we can avoid re-computing features for the same token over and over again.  
-As far as we know, MADText is the first toolkit to statistical text analysis in relational database management system (RDMS).  
+As far as we know, MADText is the first toolkit to statistical text analysis in relational database management system (RDBMS).  
 In the application level, we can support part-of-speech tagging(POS), named entity resolution and entity detection.  
 We show that our package is linearly scalable and outperform the state of art packages by avoid re-computing features for the same token. 
 Lastly, we show that MADText can do nearly real time hot topics discovery for each statesof USA using streaming Tweets.
 \end{abstract}
 
 \section{Introduction}
-With the increasing popularity of Map Reduce systems e.g. Google's MapReduce, Apache Hadoop, Spark, All big companies are using 
-MapReduce system to analyze big data such as software logs, transaction data. Traditional business intelligence has to 
-pull out of the transactional data(OLTP) from databases into other massive data warehouses(OLAP) to analyze the data.
-However, it is time consuming to pull out the data from the databases and use other external tools.
-Besides the data accounting functionality of RDBMS, in-database analytics functionality has been pushing into RDBMS to 
-enable a deep insight into the data by the database vendors.   An emerging trend is to add data analysis tools to the database. 
-On the other side, the embarrassingly parallel power can be leveraged.
-MADlib is an open source library for scalable in-database analytics. It provides parallel implementation of machine learning algorithms.
-Text analytics has gains has more and more attention due to the social networks.
-Tweets and Facebook generate tons of natural text data.
-Politicians and business companies have analyzed the text data.
-2012 US politician and Lumia920. The text data contains value information need to be extracted. Start-up companies are 
-analyzing text data to discover the popularity of specific topic and do sentiment analysis. We enable statistical text analysis in 
-parallel databases. Especially we support part of speech tagging and entity detections for natural language processing. Conditional random field(CRF) 
-is a type of discriminative undirected probabilistic graphical model. Linear-chain CRFs are special CRFs, which assume that the next state depends only 
-on the current state. Linear-chain CRFs achieve start of art accuracy in some real world natural language processing tasks such as POS and NER.
+
+MapReduce systems e.g. Google's MapReduce, Apache Hadoop have gain more and more popularity since it was invented. All big companies are running hundreds of MapReduce jobs each day and each jobs contains terabytes of data.  These data can be structured data such as transaction data and unstructured data such as natural text data. 
+Traditional business intelligence has to pull out of the data from databases into other massive data warehouses(OLAP) to analyze the data. 
+However, it is time consuming to pull out the data from the databases, use other external tools to do data analysis, and then write the results back into database.
+No doubt, the database is the place for data and also parallel database has the massive parallel processing engine. 
+So besides the data accounting functionality of RDBMS, in-database analytics functionality has been pushing into RDBMS to enable a deep insight into the data by the database vendors.  From one side, data don’t need to move back and forth.
+On the other side, the database embarrassingly parallel processing engine can be leveraged to handle Big Data. 
+Motivated by these arguments, database researchers and database vendors are trying to make these practical which leads to the MADlib project. MADlib is an open source library for scalable in-database analytics. It provides parallel implementation of machine learning algorithms.
+Text analytics has gains has more and more attention due to huge amount of text data generated from web, social networks every day.
+Understanding this natural text data is crucial to business decision and even political campaign. 
+Actually, Start-up companies are analyzing text data to discover the popularity of specific topic and do sentiment analysis over certain products. We enable statistical text analysis in parallel databases using linear chain conditional random filed, which is state of art probabilistic graphical model on real natural language processing tasks such as POS and NER.  We design novel schema, which enable us to do one time feature extraction and avoid re-computing the features for one token. We are able to use the falicity provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
 
 \section{Related Work}
 Our work is inspired by the work of Feng, Kumar which defines a unified architecture for in-RDBMS analytics.

@@ -300,19 +300,18 @@ Before each iteration of L-BFGS optimization, we need to initialize the L-BFGS w
 At the end of each iteration, we need to dump the updated variables to the database state for next iteration.
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select crf_train_data('/path/to/trainingdataset')
+    select crf_train_data('/path/to/trainingdata')
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select crf_train_fgen('train_segmenttbl', 
-    'crf_regex','crf_dictionary', 
-    'featuretbl','crf_feature_dic')
+    select crf_train_fgen('train_data', 
+    'regex','dic','featuretbl','feature_dic')
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select lincrf('featuretbl','spars_r',
+    select lincrf('featuretbl','sparse_r',
     'dense_m','sparse_m','f_size',45, 
-    'crf_feature_dic','crf_feature',20)
+    'feature_dic','feature',20)
 \end{lstlisting}
 
 \subsection{Parallel Linear-chain CRF Inference}
@@ -326,26 +325,23 @@ The $vcrf\_top\_label$ is implemented sequentially and each function call will f
 The inference is paralledl in the level of document. We use a SQL statment to drive the inference of all documents.
 So, the CRF inference is naivelly parallel. 
 \begin{lstlisting}[language=SQL,gobble=4]
-    SELECT doc_id, vcrf_top1(mfactors.score, 
-                             rfactors.score)
-    FROM   mfactors,rfactors
+    SELECT doc_id, vcrf_top1(m.score,r.score)
+    FROM   mfactors as m ,rfactors as r
 \end{lstlisting}
 
 \paragraph{Inference}
 \begin{lstlisting}[language=SQL,gobble=4]
-    select crf_test_data('/path/to/testingdataset')
+    select crf_test_data('/path/to/testingdata')
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select crf_test_fgen('test_segmenttbl',
-    'crf_dictionary','crf_label','crf_regex',
-    'crf_feature','viterbi_mtbl','viterbi_rtbl')
+    select crf_test_fgen('test_data','dic',
+    'label','regex','feature','mtbl','rtbl')
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select vcrf_label('test_segmenttbl', 
-    'viterbi_mtbl','viterbi_rtbl',
-    'crf_label','extraction')
+    select vcrf_label('test_data', 
+    'mtbl','rtbl','label','extraction')
 \end{lstlisting}
 
 \cite{DBLP:conf/icml/LaffertyMP01}
@@ -368,15 +364,16 @@ So, the CRF inference is naivelly parallel.
 \subsection{Entity Detection}
 
 \section{Performance Evaluation}
-\label{sec:length}
+In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
+we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64G memory.
+We use CoNLL2000 dataset containing 9000 tagged sentences for learning. This dataset is labeled with the Treebank II
+as the tag set. We truncated the dataset into 6 datasets containing 1k, 2k, 4k, 6k, 8k, 9k sentences respectively.
+To evaluate the inference performance, we extract 1 million sentences from news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 
-\subsection{Scalability}
 Linear-chain CRF Training:\\
 \includegraphics[height=11em]{training}
 Linear-chain CRF Inference:\\
 \includegraphics[height=11em]{training}
-\subsection{Comparisons with the State of Art}
-Compared with PCRF, CRF++
 
 \section{User Case: Tweet Analysis}
 \label{sec:blind}

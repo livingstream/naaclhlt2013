@@ -132,25 +132,29 @@ which make the feature extraction code extremely succinct.
 From a pedagogical point of view, it is much easier to teach text feature extraction using our SQL feature extraction code.
 Secondly, SQLs are naïvely parallel due to sets operations. 
 Lastly, we computed features for each distinct token, which avoid re-computing the features for the same token.  
-\begin{itemize}
-\item $SQL_1$:\\
+$SQL_1$:\\
 \begin{lstlisting}[language=SQL,gobble=4]
-    SELECT doc2.start_pos, doc2.doc_id, 'E.', ARRAY[doc1.label, doc2.label]
+    SELECT doc2.start_pos, doc2.doc_id, 'E.', 
+           ARRAY[doc1.label, doc2.label]
     FROM   segmenttbl doc1, segmenttbl doc2
-    WHERE  doc1.doc_id = doc2.doc_id AND doc1.start_pos+1 = doc2.start_pos
+    WHERE  doc1.doc_id = doc2.doc_id AND 
+           doc1.start_pos+1 = doc2.start_pos
 \end{lstlisting}
 
-\item $SQL_2$:\\
+%\item 
+$SQL_2$:\\
 \begin{lstlisting}[language=SQL,gobble=4]
-    SELECT start_pos, doc_id, 'R_' || name, ARRAY[-1, label]
+    SELECT start_pos, doc_id, 'R_' || name, 
+           ARRAY[-1, label]
     FROM  regextbl, segmenttbl
     WHERE seg_text ~ pattern
 \end{lstlisting}
-\end{itemize}
+%\end{itemize}
 
 \paragraph{Build the feature dictionary and assign each feature with a unique feature id}
-\begin{itemize}
-\item $SQL_3$\\ 
+%\begin{itemize}
+%\item 
+$SQL_3$\\ 
 \begin{lstlisting}[language=SQL,gobble=4]
     INSERT INTO tmp_featureset(f_name, feature) 
     SELECT DISTINCT f_name, feature
@@ -159,21 +163,25 @@ Lastly, we computed features for each distinct token, which avoid re-computing t
     SELECT nextval('seq')-1, f_name, feature
     FROM   tmp_featureset;
 \end{lstlisting}
-\end{itemize}
+%\end{itemize}
 
 \paragraph{Generate sparse\_r table}
-\begin{itemize}
-\item $SQL_3$\\ 
+%\begin{itemize}
+%\item $SQL_3$\\ 
 \begin{lstlisting}[language=SQL,gobble=4]
     INSERT INTO rtbl(start_pos,doc_id,feature)
-    SELECT start_pos, doc_id, array_cat(fset.feature, 
-			ARRAY[f_index,start_pos, 
-			CASE WHEN tmp1_feature.feature = fset.feature THEN 1
-			ELSE 0 END] )
+    SELECT start_pos, doc_id, 
+           array_cat(fset.feature, 
+		     ARRAY[f_index,start_pos, 
+		     CASE 
+           WHEN tmp1_feature.feature=fset.feature 
+           THEN 1
+		     ELSE 0 END] )
     FROM   tmp1_feature, featureset fset
-    WHERE  tmp1_feature.f_name = fset.f_name AND fset.f_name <> 'E.';
+    WHERE  tmp1_feature.f_name = fset.f_name AND 
+           fset.f_name <> 'E.';
 \end{lstlisting}
-\end{itemize}
+%\end{itemize}
 
 
 \subsection{Parallel Linear-chain CRF Training}
@@ -296,12 +304,14 @@ At the end of each iteration, we need to dump the updated variables to the datab
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select crf_train_fgen('train_segmenttbl', 'crf_regex','crf_dictionary', 
+    select crf_train_fgen('train_segmenttbl', 
+    'crf_regex','crf_dictionary', 
     'featuretbl','crf_feature_dic')
 \end{lstlisting}
 
 \begin{lstlisting}[language=SQL,gobble=4]
-    select lincrf('featuretbl','spars_r','dense_m','sparse_m','f_size',45, 
+    select lincrf('featuretbl','spars_r',
+    'dense_m','sparse_m','f_size',45, 
     'crf_feature_dic','crf_feature',20)
 \end{lstlisting}
 
@@ -316,8 +326,9 @@ The $vcrf\_top\_label$ is implemented sequentially and each function call will f
 The inference is paralledl in the level of document. We use a SQL statment to drive the inference of all documents.
 So, the CRF inference is naivelly parallel. 
 \begin{lstlisting}[language=SQL,gobble=4]
-        SELECT doc_id, vcrf_top1_label(mfactors.score, rfactors.score)
-        FROM   mfactors,rfactors
+    SELECT doc_id, vcrf_top1(mfactors.score, 
+                             rfactors.score)
+    FROM   mfactors,rfactors
 \end{lstlisting}
 
 \paragraph{Inference}
@@ -360,9 +371,10 @@ So, the CRF inference is naivelly parallel.
 \label{sec:length}
 
 \subsection{Scalability}
-\includegraphics[height=9.9em,width=10em]{extraction.png}
-\includegraphics[height=9.9em,width=10em]{viterbi.png}
-
+Linear-chain CRF Training:\\
+\includegraphics[height=11em]{training}
+Linear-chain CRF Inference:\\
+\includegraphics[height=11em]{training}
 \subsection{Comparisons with the State of Art}
 Compared with PCRF, CRF++
 

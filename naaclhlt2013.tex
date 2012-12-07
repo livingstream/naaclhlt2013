@@ -24,8 +24,7 @@
 \par\noindent\textit{Initialization/Precondition: #1}}
 
 
-\lstset{
-		basicstyle=\ttfamily\footnotesize,       % the size of the fonts that are used for the code
+\lstset{basicstyle=\ttfamily\footnotesize,       % the size of the fonts that are used for the code
 		numbers=left,                   % where to put the line-numbers
 		numberblanklines=false
 		numbersep=1em,                  % how far the line-numbers are from the code
@@ -61,15 +60,21 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-In this paper we introduce MADText a statistical text analytics module contributed to MADLib, 
-which is an open source project for statistical and parallel library for in-database analytics.  
-We show that we can use SQLs instead of lengthy procedure code to extract all types of text features.  
-We design novel schema to store the single state features and two states features.   
-By using these novel schemas, we can avoid re-computing features for the same token over and over again.  
-As far as we know, MADText is the first toolkit to statistical text analysis in relational database management system (RDBMS).  
+Many companies keep large stores of text files and user logs in relational databases.
+For these companies to perform analyics on these datasets, these companies must perform 
+expensive transfers between databases and analyitic systems.
+Additionally, may popular text analytics packages do not scale to production sized datasets.
+In this paper, we introduce MADText, an open source in-database statistical text analytics module.
+This module is a part of MADLib, a open source library for scalable in-database text analytics. 
+%which is an open source project for statistical and parallel library for in-database analytics.  
+We show that we can use the declarative SQL interface instead of procedural code to perform 
+conditional random field based part-of-speech tagging and named-entity resolution. 
+We design schema to store single and two-state features.
+By using these novel schemas, we avoid costly feature re-compution for the same token over and over again.  
+As far as we know, MADText is the first toolkit for statistical text analysis in relational database management systems (RDBMS).  
 In the application level, we can support part-of-speech tagging(POS), named entity resolution and entity detection.  
-We show that our package is linearly scalable and outperform the state of art packages by avoid re-computing features for the same token. 
-Lastly, we show that MADText can do nearly real time hot topics discovery for each statesof USA using streaming Tweets.
+We show that our package is linearly scalable and outperform the state of art packages by caching and avoiding costly re-compution.
+%Lastly, we show that MADText can do nearly real time hot topics discovery for each statesof USA using streaming Tweets.
 \end{abstract}
 
 \section{Introduction}
@@ -78,26 +83,41 @@ MapReduce systems e.g. Google's MapReduce, Apache Hadoop have gain more and more
 Traditional business intelligence has to pull out of the data from databases into other massive data warehouses(OLAP) to analyze the data. 
 However, it is time consuming to pull out the data from the databases, use other external tools to do data analysis, and then write the results back into database.
 No doubt, the database is the place for data and also parallel database has the massive parallel processing engine. 
-So besides the data accounting functionality of RDBMS, in-database analytics functionality has been pushing into RDBMS to enable a deep insight into the data by the database vendors.  From one side, data don’t need to move back and forth.
+So besides the data accounting functionality of relational database management systems (RDBMS), in-database analytics functionality has been pushing into RDBMS to enable a deep insight into the data by the database vendors.  From one side, data don’t need to move back and forth.
 On the other side, the database embarrassingly parallel processing engine can be leveraged to handle Big Data. 
 Motivated by these arguments, database researchers and database vendors are trying to make these practical which leads to the MADlib project. MADlib is an open source library for scalable in-database analytics. It provides parallel implementation of machine learning algorithms.
 Text analytics has gains has more and more attention due to huge amount of text data generated from web, social networks every day.
 Understanding this natural text data is crucial to business decision and even political campaign. 
-Actually, Start-up companies are analyzing text data to discover the popularity of specific topic and do sentiment analysis over certain products. We enable statistical text analysis in parallel databases using linear chain conditional random filed, which is state of art probabilistic graphical model on real natural language processing tasks such as POS and NER.  We design novel schema, which enable us to do one time feature extraction and avoid re-computing the features for one token. We are able to use the falicity provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
+Companies are analyzing text data to discover the popularity of specific topic and do sentiment analysis over certain products.
+We enable statistical text analysis in parallel databases using linear chain conditional random filed, which is state of art 
+probabilistic graphical model on real natural language processing tasks such as part of speech tagging and named entity recognition.
+We design a novel schema, that enables us to 
+perform one time feature extraction and avoid re-computing the features for one token. 
+We are able to use the falicity provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
 
 \section{Related Work}
-Our work is inspired by the work of Feng, Kumar which defines a unified architecture for in-RDBMS analytics.
-The paper points out that most of the machine learning algorithms confined to a unified architectures in RDBMS.
-Basically, most of these statistical machine learning algorithms has multiple runs has the maximum likelihood objective functions. The gradient vector and log likelihood can be calculated parallelly using user-defined aggregates supported in most of the RDBMS. User defined aggregates is MapReduce like framework to do parallel processing.
-It also defines a driver function which drive the multi-pass optimization process until converge criterion is met.
-There are many existing conditional random filed toolkit for NLP tasks such as PCRFs. Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
+Our work is inspired by a description of a unified architecture for in-RDBMS analytics \cite{Feng:2012:TUA:2213836.2213874}.
+The paper points out that most of the machine learning algorithms confined to a unified architectures in RDBMS\@.
+Essentially, the majority of machine learning algorithms can be reduced to a maximum likelihood objective function. % Multiple runs
+The gradient vector and log likelihood can be calculated in parallel using user-defined aggregates supported in most of the RDBMS.
+%User defined aggregates is MapReduce like framework to do parallel processing.
+It also defines a driver function that manages the multi-pass optimization process until convergence criterion is met.
+There are several implementations conditional random fields and but only a few large scale implementations for NLP tasks 
+
+such as PCRFs \cite{phan2004flexcrfs}. 
+
+SystemT\cite{chiticariu2010systemt}.
+
+GATE \cite{Cunningham2011a}.
+
+Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
 
 \section{Linear-chain CRF for IE in RDBMS}
-Part-of-speech tagging, also called grammatical tagging or word-category disambiguation is the process of assigning 
+Part-of-speech tagging (POS), also called grammatical tagging and word-category disambiguation is the process of assigning 
 a part of speech to each word in a sentence. POS has been widely used in information retrieval and text to speech. 
 There are two distinct methods for 
-POS task: rule-based and stochastic.
-In rule-based method, large collection of rules are defined to indentify the tag. Stochastic method is based on 
+POS task, rule-based and stochastic.
+In rule-based method, large collection of rules are defined to indentify the tag. Stochastic methods are based on 
 probabilistic graphic models such as hidden markov models and conditional random fields. In practice, 
 conditional random fields are approved to achieve the state of art accuracy.
 

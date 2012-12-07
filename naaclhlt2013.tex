@@ -8,6 +8,9 @@
 \usepackage{graphicx}
 \usepackage{latexsym}
 \usepackage{listings}
+\usepackage{alltt}
+\usepackage{balance}
+\usepackage{enumitem}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 
@@ -43,17 +46,30 @@
 \title{Large-scale Statistical Text Analytics in RDBMS\Thanks{This
     submitting for double-blind reviewing.}}
 
-\author{Kun Li, Christan Grant, Daisy Zhe Wang\\
-	    University of Florida\\
-	    111 Anywhere Street\\
-	    Gainesville, FL 32608, USA\\
-	    {\tt kli@cise.ufl.edu}
-	  \And
-	Sunny Khatri, George Chitouras\\
-  	Greenplum/EMC\\
-  	900 Main Street\\
-	    Gainesville, FL 32608, USA\\
-  {\tt george.chitouras@emc.com}}
+%\author{Kun Li, Christan Grant, Daisy Zhe Wang\\
+	    %University of Florida\\
+	    %111 Anywhere Street\\
+	    %Gainesville, FL 32608, USA\\
+	    %{\tt kli@cise.ufl.edu}
+	  %\And
+	%Sunny Khatri, George Chitouras\\
+  	%Greenplum/EMC\\
+  	%900 Main Street\\
+	    %Gainesville, FL 32608, USA\\
+  %{\tt george.chitouras@emc.com}}
+
+\author{Barack Obama, Joe Biden\\
+1700 Penslyvania Ave.\\
+Washington D.C.\\
+{\tt \{potus, vp\}@executivebranch.com}
+\And
+Mitt Romney, Paul Ryan\\
+GOP Headquarters\\
+310 First Street,\\
+SE Washington, DC\\
+{\tt \{mitt,paul\}@gop.com}
+}
+
 
 \date{}
 
@@ -67,6 +83,7 @@ Additionally, may popular text analytics packages do not scale to production siz
 In this paper, we introduce MADText, an open source in-database statistical text analytics module.
 This module is a part of MADLib, a open source library for scalable in-database text analytics. 
 %which is an open source project for statistical and parallel library for in-database analytics.  
+
 We show that we can use the declarative SQL interface instead of procedural code to perform 
 conditional random field based part-of-speech tagging and named-entity resolution. 
 We design schema to store single and two-state features.
@@ -129,21 +146,26 @@ After the feature extraction, we use user-defined aggregates to calculate the gr
 We also implement the LBFGS in database. Difference between in database and in memory implementation.
   
 \subsection{System Architecture}
-\begin{center}
+\begin{figure}
+\centering
 \includegraphics[height=15em]{system.png}
-\end{center}
+\caption{The MADText overall system architecture.}
+\label{fig:systemarch}
+\end{figure}
 
 \subsection{Feature Extraction Using SQLs}
 Text feature extraction is a step in most statistical text analysis methods.
 We are able to implement all of the seven types of features used in POS and NER using exactly seven 
 SQL statements. These features are: 
-(1) dictionary features: does this token exist in a provided dictionary? 
-(2) regex features: does this token match a provided regular expression? 
-(3) edge features: is the label of a token correlated with the label of a previous token? 
-(4) word features: does this the token appear in the training data?
-(5) unknown feature: does this token appeared in the training data below certain threshold? 
-(6) start feature: is this token the ﬁrst in the token sequence? and 
-(7) end feature: is this token the last in the token sequence?
+\begin{description}[noitemsep]
+\item[Dictionary features:] does this token exist in a provided dictionary? 
+\item[Regex features:] does this token match a provided regular expression? 
+\item[Edge features:] is the label of a token correlated with the label of a previous token? 
+\item[Word features:] does this the token appear in the training data?
+\item[Unknown feature:] does this token appeared in the training data below certain threshold? 
+\item[Start feature:] is this token the ﬁrst in the token sequence?
+\item[End feature:] is this token the last in the token sequence?
+\end{description}
 
 There are many advantages for extracting features using SQLs.  
 Compared with procedure language, SQL is much more easier to understand. 
@@ -153,7 +175,7 @@ From a pedagogical point of view, it is much easier to teach text feature extrac
 Secondly, SQLs are naïvely parallel due to sets operations. 
 Lastly, we computed features for each distinct token, which avoid re-computing the features for the same token.  
 $SQL_1$:\\
-\begin{lstlisting}[language=SQL,gobble=4]
+\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
     SELECT doc2.start_pos, doc2.doc_id, 'E.', 
            ARRAY[doc1.label, doc2.label]
     FROM   segmenttbl doc1, segmenttbl doc2
@@ -387,13 +409,23 @@ So, the CRF inference is naivelly parallel.
 In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
 we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64G memory.
 We use CoNLL2000 dataset containing 9000 tagged sentences for learning. This dataset is labeled with the Treebank II
-as the tag set. We truncated the dataset into 6 datasets containing 1k, 2k, 4k, 6k, 8k, 9k sentences respectively.
-To evaluate the inference performance, we extract 1 million sentences from news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
+as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
+To evaluate the inference performance, we manually extract 1 million sentences from the New York Times Corpus
+news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 
-Linear-chain CRF Training:\\
+\begin{figure}
+\centering
 \includegraphics[height=11em]{training}
-Linear-chain CRF Inference:\\
+\caption{Linear-chain CRF training scalability}
+\label{fig:crftrain}
+\end{figure}
+
+\begin{figure}
+\centering
 \includegraphics[height=11em]{training}
+\caption{Linear-chain CRF inference scalability}
+\label{fig:crftrain}
+\end{figure}
 
 \section{User Case: Tweet Analysis}
 \label{sec:blind}

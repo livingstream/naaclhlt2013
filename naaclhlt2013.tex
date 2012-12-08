@@ -136,20 +136,25 @@ We are able to use the falicity provided by a RDMBS to achieve the parallel CRF 
 
 \section{Related Work}
 Our work is inspired by a description of a unified architecture for in-RDBMS analytics \cite{Feng:2012:TUA:2213836.2213874}.
-The paper points out that most of the machine learning algorithms confined to a unified architectures in RDBMS\@.
+The paper points out that most of the machine learning algorithms can be expressed through
+a unified architectures in RDBMs.
 Essentially, the majority of machine learning algorithms can be reduced to a maximum likelihood objective function. % Multiple runs
 The gradient vector and log likelihood can be calculated in parallel using user-defined aggregates supported in most of the RDBMS.
 %User defined aggregates is MapReduce like framework to do parallel processing.
 It also defines a driver function that manages the multi-pass optimization process until convergence criterion is met.
-There are several implementations conditional random fields and but only a few large scale implementations for NLP tasks 
 
-such as PCRFs \cite{phan2004flexcrfs}. 
+There are several implementations conditional random fields and but only a few 
+large scale implementations for NLP tasks.
+One example is the PCRFs \cite{phan2004flexcrfs} that are implemented over
+massively parallel processing systems supporting Message Passing Interface (MPI) such as 
+Cray XT3, SGI Altix, and IBM SP.
+This is not implemented over RDBMs.
 
-SystemT\cite{chiticariu2010systemt}.
+Other researchers have created systems for large scale text analytics including 
+GATE, PurpleSox and SystemT
+\cite{Cunningham2011a,Bohannon:2009:PSE:1519103.1519107,Li:2011:SDI:2002440.2002459}. 
 
-GATE \cite{Cunningham2011a}.
-
-Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
+%Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
 
 \section{Linear-chain CRF for IE in RDBMS}
 Part-of-speech tagging (POS), also called grammatical tagging and word-category disambiguation is the process of assigning 
@@ -160,13 +165,6 @@ In rule-based method, large collection of rules are defined to indentify the tag
 probabilistic graphic models such as hidden markov models and conditional random fields. In practice, 
 conditional random fields are approved to achieve the state of art accuracy.
 
-
-\subsection{In-database Implementation}
-We use SQL clauses to generate all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
-All the features can be stored in two schemas. M and R. M table stores the features involves two states. R table store all the single state features.
-After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood parallel using the transition function.
-We also implement the LBFGS in database. Difference between in database and in memory implementation.
-  
 \subsection{System Architecture}
 \begin{figure}
 \centering
@@ -174,6 +172,18 @@ We also implement the LBFGS in database. Difference between in database and in m
 \caption{The MADText overall system architecture.}
 \label{fig:systemarch}
 \end{figure}
+
+In Figure \ref{fig:systemarch} we show the system architecture for MADText~\footnote{Information on the MABLib process is available at http://madlib.net}. 
+The top box contains the shows  the pipeline of the training phase. 
+The second box shows the operational pipeline for the testing phase.
+n the following sections we descripb each portion of the pipeline.
+
+\subsection{In-database Implementation}
+We use SQL clauses to generate all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
+All the features can be stored in two schemas. M and R. M table stores the features involves two states. R table store all the single state features.
+After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood parallel using the transition function.
+We also implement the LBFGS in database. Difference between in database and in memory implementation.
+
 
 \subsection{Feature Extraction Using SQLs}
 Text feature extraction is a step in most statistical text analysis methods.
@@ -415,12 +425,12 @@ So, the CRF inference is naivelly parallel.
     'mtbl','rtbl','label','extraction')
 \end{lstlisting}
 
-\cite{DBLP:conf/icml/LaffertyMP01}
-\cite{DBLP:journals/scholarpedia/Viterbi09}
-\cite{DBLP:journals/siamjo/MoralesN00}
-\cite{DBLP:journals/coling/DeRose88}
-\cite{DBLP:conf/naacl/ShaP03}
-\cite{DBLP:journals/coling/MarcusSM94}
+%\cite{DBLP:conf/icml/LaffertyMP01}
+%\cite{DBLP:journals/scholarpedia/Viterbi09}
+%\cite{DBLP:journals/siamjo/MoralesN00}
+%\cite{DBLP:journals/coling/DeRose88}
+%\cite{DBLP:conf/naacl/ShaP03}
+%\cite{DBLP:journals/coling/MarcusSM94}
 
 
 %\begin{thebibliography}{}
@@ -456,8 +466,8 @@ news and truncated the inference datasets into 5 dataset contains 100k, 200k, 40
 \label{fig:crftrain}
 \end{figure}
 
-\section{User Case: Tweet Analysis}
-\label{sec:blind}
+%\section{User Case: Tweet Analysis}
+%\label{sec:blind}
 
 \section{Conclusion}
 
@@ -466,7 +476,8 @@ Christan Grant is funded by a National
 Science Foundation Graduate Research Fellowship under Grant No. DGE-0802270.
 This work was supported by a gift from EMC Greenplum.
 
-\bibliographystyle{plain}
+\bibliographystyle{naaclhlt2013}
+%\bibliographystyle{plain}
 \bibliography{citation}
 
 \end{document}

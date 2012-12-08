@@ -43,8 +43,9 @@
 
 \setlength\titlebox{6.5cm}    % Expanding the titlebox
 
-\title{Large-scale Statistical Text Analytics in RDBMS\Thanks{This
-    submitting for double-blind reviewing.}}
+%\title{Large-scale Statistical Text Analytics in RDBMS\Thanks{This
+%    submitting for double-blind reviewing.}}
+\title{Towards In-database Statistical Text Analytics}
 
 %\author{Kun Li, Christan Grant, Daisy Zhe Wang\\
 	    %University of Florida\\
@@ -84,11 +85,12 @@ In this paper, we introduce MADText, an open source in-database statistical text
 This module is a part of MADLib, a open source library for scalable in-database text analytics. 
 %which is an open source project for statistical and parallel library for in-database analytics.  
 
+Though this project, we motivate the use of text analytics inside the database.
 We show that we can use the declarative SQL interface instead of procedural code to perform 
 conditional random field based part-of-speech tagging and named-entity resolution. 
 We design schema to store single and two-state features.
 By using these novel schemas, we avoid costly feature re-compution for the same token over and over again.  
-As far as we know, MADText is the first toolkit for statistical text analysis in relational database management systems (RDBMS).  
+As far as we know, MADText is the first toolkit for statistical text analysis in relational database management systems.  
 In the application level, we can support part-of-speech tagging(POS), named entity resolution and entity detection.  
 We show that our package is linearly scalable and outperform the state of art packages by caching and avoiding costly re-compution.
 %Lastly, we show that MADText can do nearly real time hot topics discovery for each statesof USA using streaming Tweets.
@@ -96,18 +98,38 @@ We show that our package is linearly scalable and outperform the state of art pa
 
 \section{Introduction}
 
-MapReduce systems e.g. Google's MapReduce, Apache Hadoop have gain more and more popularity since it was invented. All big companies are running hundreds of MapReduce jobs each day and each jobs contains terabytes of data.  These data can be structured data such as transaction data and unstructured data such as natural text data. 
-Traditional business intelligence has to pull out of the data from databases into other massive data warehouses(OLAP) to analyze the data. 
-However, it is time consuming to pull out the data from the databases, use other external tools to do data analysis, and then write the results back into database.
-No doubt, the database is the place for data and also parallel database has the massive parallel processing engine. 
-So besides the data accounting functionality of relational database management systems (RDBMS), in-database analytics functionality has been pushing into RDBMS to enable a deep insight into the data by the database vendors.  From one side, data don’t need to move back and forth.
-On the other side, the database embarrassingly parallel processing engine can be leveraged to handle Big Data. 
-Motivated by these arguments, database researchers and database vendors are trying to make these practical which leads to the MADlib project. MADlib is an open source library for scalable in-database analytics. It provides parallel implementation of machine learning algorithms.
-Text analytics has gains has more and more attention due to huge amount of text data generated from web, social networks every day.
+%MapReduce systems e.g. Google's MapReduce, Apache Hadoop have gain more and more popularity since it was invented.
+%All big companies are running hundreds of MapReduce jobs each day and each jobs contains terabytes of data.
+%These data can be structured data such as transaction data and unstructured data such as natural text data. 
+Traditional business intelligence has to pull data from databases into other massive 
+data warehouses (OLAP) to analyze the data. 
+The typical data movement process includes moving data from the dabases for use in other external 
+data analysis tools, and then write the results back into database.
+This movement process is expensive and minimization of data movement is a huge incentive for the datastore 
+to be the same location as the analytic engine.
+This is especially true for large parallel systems \cite{ananthanarayanan2011disk}.
+%is the place for data and also parallel database has the massive parallel processing engine. 
+%So besides the data accounting functionality of 
+Relational database management systems (RDBMS) have long been excellent at data accounting.
+Recently, researchers have been pushing in-database analytic functionality to be integrated 
+into RDBMs to enable a deep insights into the data.
+
+Newer parallel processing relational databases are can be leveraged more nodes and cores to handle large
+increases in the size of data \cite{DeWitt:1992:PDS:129888.129894}. 
+Motivated by these arguments, database researchers and database vendors are trying to make these practical,
+investing in the ventures such as the MADlib project. 
+MADlib is an open source library for scalable in-database analytics.
+It provides parallel implementation of machine learning algorithms.
+
+Text analytics has gained has more attention due to huge amount of text data generated from web, 
+social networks every day.
 Understanding this natural text data is crucial to business decision and even political campaign. 
 Companies are analyzing text data to discover the popularity of specific topic and do sentiment analysis over certain products.
-We enable statistical text analysis in parallel databases using linear chain conditional random filed, which is state of art 
-probabilistic graphical model on real natural language processing tasks such as part of speech tagging and named entity recognition.
+We enable statistical text analysis in parallel databases using linear chain conditional random fields, a
+popular statistical method that enables
+%probabilistic graphical model on real
+natural language processing tasks such as part of speech tagging and named entity recognition on
+real data \cite{DBLP:conf/icml/LaffertyMP01}.
 We design a novel schema, that enables us to 
 perform one time feature extraction and avoid re-computing the features for one token. 
 We are able to use the falicity provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
@@ -175,6 +197,8 @@ From a pedagogical point of view, it is much easier to teach text feature extrac
 Secondly, SQLs are naïvely parallel due to sets operations. 
 Lastly, we computed features for each distinct token, which avoid re-computing the features for the same token.  
 $SQL_1$:\\
+\begin{figure}
+\centering
 \begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
     SELECT doc2.start_pos, doc2.doc_id, 'E.', 
            ARRAY[doc1.label, doc2.label]
@@ -182,6 +206,9 @@ $SQL_1$:\\
     WHERE  doc1.doc_id = doc2.doc_id AND 
            doc1.start_pos+1 = doc2.start_pos
 \end{lstlisting}
+\caption{Query for ??? }
+\end{figure}
+
 
 %\item 
 $SQL_2$:\\
@@ -193,7 +220,9 @@ $SQL_2$:\\
 \end{lstlisting}
 %\end{itemize}
 
-\paragraph{Build the feature dictionary and assign each feature with a unique feature id}
+Build the feature dictionary and assign each feature with a unique feature id
+
+
 %\begin{itemize}
 %\item 
 $SQL_3$\\ 

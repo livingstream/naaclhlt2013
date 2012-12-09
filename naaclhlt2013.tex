@@ -157,13 +157,13 @@ GATE, PurpleSox and SystemT
 %Wang's work on CRF inference Limited-memory BFGS We design novel relational schemas to store all the inputs, features, and outputs.
 
 \section{Linear-chain CRF for IE in RDBMS}
-Part-of-speech tagging (POS), also called grammatical tagging and word-category disambiguation is the process of assigning 
-a part of speech to each word in a sentence. POS has been widely used in information retrieval and text to speech. 
-There are two distinct methods for 
-POS task, rule-based and stochastic.
-In rule-based method, large collection of rules are defined to indentify the tag. Stochastic methods are based on 
-probabilistic graphic models such as hidden markov models and conditional random fields. In practice, 
-conditional random fields are approved to achieve the state of art accuracy.
+Part-of-speech tagging (POS) is the process of assigning 
+a part of speech to each word in a sentence. POS has been widely used in information retrieval, text to speech and dimension reduction. 
+%There are two distinct methods for 
+%POS task, rule-based and stochastic.
+%In rule-based method, large collection of rules are defined to indentify the tag. Stochastic methods are based on 
+%probabilistic graphic models such as hidden markov models and conditional random fields. 
+In practice, conditional random fields are approved to achieve the state of art accuracy for the POS and NER tasks.
 
 \subsection{System Architecture}
 \begin{figure}
@@ -180,9 +180,10 @@ n the following sections we descripb each portion of the pipeline.
 
 \subsection{In-database Implementation}
 We use SQL clauses to generate all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
-All the features can be stored in two schemas. M and R. M table stores the features involves two states. R table store all the single state features.
+All the features can be stored in two schemas. 
+%M and R. M table stores the features involves two states. R table store all the single state features.
 After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood parallel using the transition function.
-We also implement the LBFGS in database. Difference between in database and in memory implementation.
+We also implement the LBFGS in database. 
 
 
 \subsection{Feature Extraction Using SQLs}
@@ -206,7 +207,6 @@ which make the feature extraction code extremely succinct.
 From a pedagogical point of view, it is much easier to teach text feature extraction using our SQL feature extraction code.
 Secondly, SQLs are naïvely parallel due to sets operations. 
 Lastly, we computed features for each distinct token, which avoid re-computing the features for the same token.  
-$SQL_1$:\\
 \begin{figure}
 \centering
 \begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
@@ -284,20 +284,20 @@ The outer loop is inherently sequential over multiple iterations.
 The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
 The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
 Simple model averaging are used to merge two states.
-A merge function is not explicitly added to the pseudocode for simplicity.
-The finalization function invokes the L-BFGS convex solver to get a new solution. L-BFGS is sequential, but very fast.
-Experiments show that the speed-up ration approaches the number of segments configured in the Greenplum database.
+%A merge function is not explicitly added to the pseudocode for simplicity.
+The finalization function invokes the L-BFGS convex solver to get a new solution. 
+%L-BFGS is sequential, but very fast.
+%Experiments show that the speed-up ration approaches the number of segments configured in the Greenplum database.
 
-\paragraph{Convergence criterion.}
-Usually, the following conditions are combined by AND, OR, or NOT.
-\begin{enumerate}
-    \item The norm of gradient divided by the norm of coefficient drops below a given threshold.
-    \item The maximum number of iterations is reached.
-    \item There could be more.
-\end{enumerate}
+%\paragraph{Convergence criterion.}
+%The following convergence criterions are supported.
+%\begin{enumerate}
+%    \item The norm of gradient divided by the norm of coefficient drops below a given threshold.
+%    \item The maximum number of iterations is reached.
+%\end{enumerate}
 
-\paragraph{Start strategy.}
-In most cases, zeros are used unless otherwise specified.
+%\paragraph{Start strategy.}
+%In most cases, zeros are used unless otherwise specified.
 
 \paragraph{Transition strategies.}
 This function contains the logic of computing the gradient and log-likelihood for each tuple using the forward-backward
@@ -320,22 +320,21 @@ gradient function $\mathit{Gradient}()$}
 
 \paragraph{Merge strategies.}
 The merge function simply sums the gradient and log-likelihood over all training documents
-\begin{algorithm}
-\caption{merge-lbfgs$(\mathit{state_1}, \mathit{state_2})$} \label{alg:merge-lbfgs}
-\alginput{Transition state $\mathit{state_1}$,\\
-Transition state $\mathit{state_2}$}
-\algoutput{Transition state $\mathit{state_{new}}$}
-\begin{algorithmic}[1]
-    \State $\mathit{state_{new}}.g \gets \mathit{state_1}.g + \mathit{state_2}.g$
-    \State $\mathit{state_{new}}.loglikelihood \gets \mathit{state_1}.loglikelihood + \mathit{state_2}.loglikelihood$
-    \State \Return $\mathit{state_{new}}$
-\end{algorithmic}
-\end{algorithm}
+%\begin{algorithm}
+%\caption{merge-lbfgs$(\mathit{state_1}, \mathit{state_2})$} \label{alg:merge-lbfgs}
+%\alginput{Transition state $\mathit{state_1}$,\\
+%Transition state $\mathit{state_2}$}
+%\algoutput{Transition state $\mathit{state_{new}}$}
+%\begin{algorithmic}[1]
+%    \State $\mathit{state_{new}}.g \gets \mathit{state_1}.g + \mathit{state_2}.g$
+%    \State $\mathit{state_{new}}.loglikelihood \gets \mathit{state_1}.loglikelihood + \mathit{state_2}.loglikelihood$
+%    \State \Return $\mathit{state_{new}}$
+%\end{algorithmic}
+%\end{algorithm}
 
 
 \paragraph{Finalization strategy.}
 The finalization function invokes the L-BFGS convex solver to get a new coefficent vector.\\
-
 \begin{algorithm}
 \caption{finalization-lbfgs$(state)$} \label{alg:CRF training}
 \alginput{Transition state $state$,\\
@@ -350,12 +349,10 @@ LBFGS $\mathit{lbfgs}()$}
         \State \Return $state$
 \end{algorithmic}
 \end{algorithm}
-
-Feeding with current solution, gradient, log-likelihood, etc., the L-BFGS will ouput a new solution.
-To avoid overfitting, a penalization function is needed. We choose to penalize the log-likelihood with a spherical Gaussian weight prior.
-Also, L-BFGS is to maximum objective, so we need to negate the gradient vector and log-likelihood to fit our needs in order minimize the log-likehood.
-
-\paragraph{LBFGS Convex Optimization}
+%Feeding with current solution, gradient, log-likelihood, etc., the L-BFGS will ouput a new solution.
+%To avoid overfitting, a penalization function is needed. We choose to penalize the log-likelihood with a spherical Gaussian weight prior.
+%Also, L-BFGS is to maximum objective, so we need to negate the gradient vector and log-likelihood to fit our needs in order minimize the log-likehood.
+%\paragraph{LBFGS Convex Optimization}
 The limited-memory BFGS(L-BFGS) is the limited memory variation of the Broyden-Fletcher-Goldfarb-Shanno(BFGS) algorithm which
 is the state of art of large scale non constraint convex optimization method.
 We translate the in-memory Java implementation to C++ in-database implementation using Eigen support.
@@ -365,50 +362,48 @@ However, in the MADlib implementation, we define these variables in the state ob
 Before each iteration of L-BFGS optimization, we need to initialize the L-BFGS with the current state object. 
 At the end of each iteration, we need to dump the updated variables to the database state for next iteration.
 
-\begin{lstlisting}[language=SQL,gobble=4]
-    select crf_train_data('/path/to/trainingdata')
-\end{lstlisting}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select crf_train_data('/path/to/trainingdata')
+%\end{lstlisting}
 
-\begin{lstlisting}[language=SQL,gobble=4]
-    select crf_train_fgen('train_data', 
-    'regex','dic','featuretbl','feature_dic')
-\end{lstlisting}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select crf_train_fgen('train_data', 
+%    'regex','dic','featuretbl','feature_dic')
+%\end{lstlisting}
 
-\begin{lstlisting}[language=SQL,gobble=4]
-    select lincrf('featuretbl','sparse_r',
-    'dense_m','sparse_m','f_size',45, 
-    'feature_dic','feature',20)
-\end{lstlisting}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select lincrf('featuretbl','sparse_r',
+%    'dense_m','sparse_m','f_size',45, 
+%    'feature_dic','feature',20)
+%\end{lstlisting}
 
 \subsection{Parallel Linear-chain CRF Inference}
  The Viterbi algorithm is to find the top-k most likely labelings of a document 
 for CRF models. 
-We chose to implement a Python UDF that uses iterations to drive the Viterbi inference. 
-In Greenplum, Viterbi can be run in parallel over different subsets 
-of the document on a multi-core machine.
+We chose to implement a SQL clause to drive the Viterbi inference. 
+The Viterbi inference is implemented sequentially and each function call 
+will finish labeling of one document.
+However, in Greenplum, Viterbi can be run in parallel over different subsets 
+of the document on a multi-core machine. So, the CRF inference is naivelly parallel. 
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    SELECT doc_id, vcrf_top1(m.score,r.score)
+%    FROM   mfactors as m ,rfactors as r
+%\end{lstlisting}
 
-The $vcrf\_top\_label$ is implemented sequentially and each function call will finish labeling of one document. 
-The inference is paralledl in the level of document. We use a SQL statment to drive the inference of all documents.
-So, the CRF inference is naivelly parallel. 
-\begin{lstlisting}[language=SQL,gobble=4]
-    SELECT doc_id, vcrf_top1(m.score,r.score)
-    FROM   mfactors as m ,rfactors as r
-\end{lstlisting}
+%\paragraph{Inference}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select crf_test_data('/path/to/testingdata')
+%\end{lstlisting}
 
-\paragraph{Inference}
-\begin{lstlisting}[language=SQL,gobble=4]
-    select crf_test_data('/path/to/testingdata')
-\end{lstlisting}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select crf_test_fgen('test_data','dic',
+%    'label','regex','feature','mtbl','rtbl')
+%\end{lstlisting}
 
-\begin{lstlisting}[language=SQL,gobble=4]
-    select crf_test_fgen('test_data','dic',
-    'label','regex','feature','mtbl','rtbl')
-\end{lstlisting}
-
-\begin{lstlisting}[language=SQL,gobble=4]
-    select vcrf_label('test_data', 
-    'mtbl','rtbl','label','extraction')
-\end{lstlisting}
+%\begin{lstlisting}[language=SQL,gobble=4]
+%    select vcrf_label('test_data', 
+%    'mtbl','rtbl','label','extraction')
+%\end{lstlisting}
 
 %\cite{DBLP:conf/icml/LaffertyMP01}
 %\cite{DBLP:journals/scholarpedia/Viterbi09}
@@ -432,10 +427,11 @@ So, the CRF inference is naivelly parallel.
 \section{Experiments and Results}
 In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
 we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64G memory.
-We use CoNLL2000 dataset containing 9000 tagged sentences for learning. This dataset is labeled with the Treebank II
-as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
-To evaluate the inference performance, we manually extract 1 million sentences from the New York Times Corpus
-news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
+We use CoNLL2000 dataset containing 9000 tagged sentences for learning. 
+This dataset is labeled with 45 POS tags.
+%as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
+To evaluate the inference performance, we extracted 1 million sentences from the New York Times dataset. 
+%news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 
 \begin{figure}
 \centering

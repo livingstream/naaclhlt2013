@@ -216,40 +216,24 @@ $SQL_1$:\\
     WHERE  doc1.doc_id = doc2.doc_id AND 
            doc1.start_pos+1 = doc2.start_pos
 \end{lstlisting}
-\caption{Query for ??? }
+\caption{Query for extracting edge features}
 \end{figure}
 
-
-%\item 
-$SQL_2$:\\
-\begin{lstlisting}[language=SQL,gobble=4]
+\begin{figure}
+\centering
+\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
     SELECT start_pos, doc_id, 'R_' || name, 
            ARRAY[-1, label]
     FROM  regextbl, segmenttbl
     WHERE seg_text ~ pattern
 \end{lstlisting}
-%\end{itemize}
+\caption{Query for extracting regex features}
+\end{figure}
 
-Build the feature dictionary and assign each feature with a unique feature id
 
-
-%\begin{itemize}
-%\item 
-$SQL_3$\\ 
-\begin{lstlisting}[language=SQL,gobble=4]
-    INSERT INTO tmp_featureset(f_name, feature) 
-    SELECT DISTINCT f_name, feature
-    FROM   tmp1_feature;
-    INSERT INTO featureset(f_index, f_name, feature) 
-    SELECT nextval('seq')-1, f_name, feature
-    FROM   tmp_featureset;
-\end{lstlisting}
-%\end{itemize}
-
-\paragraph{Generate sparse\_r table}
-%\begin{itemize}
-%\item $SQL_3$\\ 
-\begin{lstlisting}[language=SQL,gobble=4]
+\begin{figure}
+\centering
+\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
     INSERT INTO rtbl(start_pos,doc_id,feature)
     SELECT start_pos, doc_id, 
            array_cat(fset.feature, 
@@ -262,7 +246,8 @@ $SQL_3$\\
     WHERE  tmp1_feature.f_name = fset.f_name AND 
            fset.f_name <> 'E.';
 \end{lstlisting}
-%\end{itemize}
+\caption{Query for extracting regex features}
+\end{figure}
 
 
 \subsection{Parallel Linear-chain CRF Training}

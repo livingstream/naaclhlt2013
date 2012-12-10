@@ -28,7 +28,7 @@
 
 
 \lstset{basicstyle=\ttfamily\footnotesize,       % the size of the fonts that are used for the code
-		numbers=left,                   % where to put the line-numbers
+		%numbers=left,                   % where to put the line-numbers
 		numberblanklines=false
 		numbersep=1em,                  % how far the line-numbers are from the code
 		basewidth=0.52em,
@@ -179,72 +179,80 @@ The second box shows the operational pipeline for the testing phase.
 n the following sections we descripb each portion of the pipeline.
 
 \subsection{In-database Implementation}
-We use SQL clauses to generate all features for text. Any features in the state of art packages can be extracted using one single SQL clause.
-All the features can be stored in two schemas. 
+We use declarative SQL statements to generate all features for text.
+%Any features in the state of art packages can be extracted using one single SQL clause.
+%All of the common features described in literature can be extrated with one  SQL statement.
+The extracted features are stored in a relation for either single or two-state features.
 %M and R. M table stores the features involves two states. R table store all the single state features.
-After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood parallel using the transition function.
-We also implement the LBFGS in database. 
+After the feature extraction, we use user-defined aggregates to calculate the gradient and log-likelihood in parallel using the transition function.
+%We also implement the LBFGS in database. 
 
 
 \subsection{Feature Extraction Using SQLs}
 Text feature extraction is a step in most statistical text analysis methods.
 We are able to implement all of the seven types of features used in POS and NER using exactly seven 
-SQL statements. These features are: 
+SQL statements. These features include: 
 \begin{description}[noitemsep]
-\item[Dictionary features] does this token exist in a provided dictionary? 
-\item[Regex feature:] does this token match a provided regular expression? 
-\item[Edge feature:] is the label of a token correlated with the label of a previous token? 
-\item[Word feature:] does this the token appear in the training data?
-\item[Unknown feature:] does this token appeared in the training data below certain threshold? 
-\item[Start feature and End feature:] is this token the first/last in the token sequence?
+\item[Dictionary:] does this token exist in a dictionary? 
+\item[Regex:] does this token match a regular expression? 
+\item[Edge:] is the label of a token correlated with the label of a previous token? 
+\item[Word:] does this token appear in the training data?
+\item[Unknown:] does this token appeared in the training data below certain threshold? 
+\item[Start/End:] is this token first/last in the token sequence?
 %\item[End feature:] is this token the last in the token sequence?
 \end{description}
 
 There are many advantages for extracting features using SQLs.  
-Compared with procedure language, SQL is much more easier to understand. 
+%Compared with procedure language, SQL is much more easier to understand. 
+The SQL statements hide a lot of the complexity in present  in the actual operation.
 It turns out that each type of feature can be extracted out using exactly one SQL statement, 
-which make the feature extraction code extremely succinct.  
+making the feature extraction code extremely succinct.  
 From a pedagogical point of view, it is much easier to teach text feature extraction using our SQL feature extraction code.
-Secondly, SQLs are naïvely parallel due to sets operations. 
-Lastly, we computed features for each distinct token, which avoid re-computing the features for the same token.  
+Secondly, SQLs statements are naïvely parallel due to their set semantics.
+For example, we compute features for each distinct token and avoid re-computing the features for repeated tokens.  
+In Figure~\ref{fig:edgefeatures} and Figure~\ref{fig:regexfeatures} we show how to extract edge
+and regex features, respectively.
+
 \begin{figure}
 \centering
-\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
-    SELECT doc2.start_pos, doc2.doc_id, 'E.', 
-           ARRAY[doc1.label, doc2.label]
-    FROM   segmenttbl doc1, segmenttbl doc2
-    WHERE  doc1.doc_id = doc2.doc_id AND 
-           doc1.start_pos+1 = doc2.start_pos
+\begin{lstlisting}[language=SQL,breaklines=true]
+SELECT doc2.start_pos, doc2.doc_id, 'E.', 
+       ARRAY[doc1.label, doc2.label]
+FROM   segmenttbl doc1, segmenttbl doc2
+WHERE  doc1.doc_id = doc2.doc_id AND 
+       doc1.start_pos+1 = doc2.start_pos
 \end{lstlisting}
 \caption{Query for extracting edge features}
+\label{fig:edgefeatures}
 \end{figure}
 
 \begin{figure}
 \centering
-\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
-    SELECT start_pos, doc_id, 'R_' || name, 
-           ARRAY[-1, label]
-    FROM  regextbl, segmenttbl
-    WHERE seg_text ~ pattern
+\begin{lstlisting}[language=SQL, breaklines=true]
+SELECT start_pos, doc_id, 'R_' || name, 
+       ARRAY[-1, label]
+FROM  regextbl, segmenttbl
+WHERE seg_text ~ pattern
 \end{lstlisting}
 \caption{Query for extracting regex features}
+\label{fig:regexfeatures}
 \end{figure}
 
 
 \begin{figure}
 \centering
-\begin{lstlisting}[language=SQL,gobble=4, breaklines=true]
-    INSERT INTO rtbl(start_pos,doc_id,feature)
-    SELECT start_pos, doc_id, 
-           array_cat(fset.feature, 
-		     ARRAY[f_index,start_pos, 
-		     CASE 
-           WHEN tmp1_feature.feature=fset.feature 
-           THEN 1
-		     ELSE 0 END] )
-    FROM   tmp1_feature, featureset fset
-    WHERE  tmp1_feature.f_name = fset.f_name AND 
-           fset.f_name <> 'E.';
+\begin{lstlisting}[language=SQL,breaklines=true]
+INSERT INTO rtbl(start_pos,doc_id,feature)
+SELECT start_pos, doc_id, 
+       array_cat(fset.feature, 
+   ARRAY[f_index,start_pos, 
+   CASE 
+       WHEN tmp1_feature.feature=fset.feature 
+       THEN 1
+   ELSE 0 END] )
+FROM   tmp1_feature, featureset fset
+WHERE  tmp1_feature.f_name = fset.f_name AND 
+       fset.f_name <> 'E.';
 \end{lstlisting}
 \caption{Query for extracting regex features}
 \end{figure}
@@ -274,10 +282,12 @@ finalization strategy $\mathit{Finalization}()$}
 \Until{$Convergence(w_{new}, g_{new}, \mathit{iteration})$}
     \State \Return $w_{new}$
 \end{algorithmic}
+\label{algo:crftraining}
 \end{algorithm}
 
 \paragraph{Programming Model.}
-We provide above the algorithm of parallel CRF training strategy, in the fashion of the selected programming model supported by MADlib (mainly user-defined aggregate).
+In Algorithm~\ref{algo:crftraining} we show the parallel CRF training strategy, in the fashion of the selected programming model supported by MADlib (mainly user-defined aggregate).
+%We provide above the algorithm of parallel CRF training strategy, in the fashion of the selected programming model supported by MADlib (mainly user-defined aggregate).
 
 \paragraph{Parallelism.}
 The outer loop is inherently sequential over multiple iterations.
@@ -315,6 +325,7 @@ gradient function $\mathit{Gradient}()$}
     \State $\mathit{state}.num\_rows \gets \mathit{state}.num\_rows + 1$
     \State \Return $\mathit{state}$
 \end{algorithmic}
+\label{algo:crftransition}
 \end{algorithm}
 
 
@@ -348,6 +359,7 @@ LBFGS $\mathit{lbfgs}()$}
         \State instance.save\_state$(state)$ \Comment{save updated variables to the state for next iteration}
         \State \Return $state$
 \end{algorithmic}
+\label{algo:crffinal}
 \end{algorithm}
 %Feeding with current solution, gradient, log-likelihood, etc., the L-BFGS will ouput a new solution.
 %To avoid overfitting, a penalization function is needed. We choose to penalize the log-likelihood with a spherical Gaussian weight prior.
@@ -359,8 +371,8 @@ LBFGS $\mathit{lbfgs}()$}
 Limited-memory BFGS (L-BFGS), a variation of the Broyden-Fletcher-Goldfarb-Shanno (BFGS)
 algorithm is a leading method for large scale non-constraint convex optimization method.
 We translate the in-memory Java implementation to C++ in-database implementation using Eigen support.
-Eigen vector and Eigen matrix are used instead of the plain one dimentional and two dimentional arrays.
-In the Java in-memory implementation, it defines many static variables defined and shared between the interations.
+Eigen vector and Eigen matrix are used instead of the one dimensional and two-dimensional arrays.
+In the Java in-memory implementation, it defines many static variables defined and shared between iterations.
 However, in the MADlib implementation, we define these variables in the state object.
 Before each iteration of L-BFGS optimization, we need to initialize the L-BFGS with the current state object. 
 At the end of each iteration, we need to dump the updated variables to the database state for next iteration.
@@ -381,13 +393,13 @@ At the end of each iteration, we need to dump the updated variables to the datab
 %\end{lstlisting}
 
 \subsection{Parallel Linear-chain CRF Inference}
- The Viterbi algorithm is to find the top-k most likely labelings of a document 
+ The Viterbi algorithm is to find the top-k most likely labellings of a document 
 for CRF models. 
 We chose to implement a SQL clause to drive the Viterbi inference. 
 The Viterbi inference is implemented sequentially and each function call 
 will finish labeling of one document.
 However, in Greenplum, Viterbi can be run in parallel over different subsets 
-of the document on a multi-core machine. So, the CRF inference is naivelly parallel. 
+of the document on a multi-core machine. So, the CRF inference is naively parallel. 
 %\begin{lstlisting}[language=SQL,gobble=4]
 %    SELECT doc_id, vcrf_top1(m.score,r.score)
 %    FROM   mfactors as m ,rfactors as r

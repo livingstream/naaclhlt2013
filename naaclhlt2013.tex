@@ -353,8 +353,11 @@ LBFGS $\mathit{lbfgs}()$}
 %To avoid overfitting, a penalization function is needed. We choose to penalize the log-likelihood with a spherical Gaussian weight prior.
 %Also, L-BFGS is to maximum objective, so we need to negate the gradient vector and log-likelihood to fit our needs in order minimize the log-likehood.
 %\paragraph{LBFGS Convex Optimization}
-The limited-memory BFGS(L-BFGS) is the limited memory variation of the Broyden-Fletcher-Goldfarb-Shanno(BFGS) algorithm which
-is the state of art of large scale non constraint convex optimization method.
+%The limited-memory BFGS(L-BFGS) is the limited memory variation of the Broyden-Fletcher-Goldfarb-Shanno(BFGS) algorithm which
+%is the state of art of large scale non constraint convex optimization method.
+
+Limited-memory BFGS (L-BFGS), a variation of the Broyden-Fletcher-Goldfarb-Shanno (BFGS)
+algorithm is a leading method for large scale non-constraint convex optimization method.
 We translate the in-memory Java implementation to C++ in-database implementation using Eigen support.
 Eigen vector and Eigen matrix are used instead of the plain one dimentional and two dimentional arrays.
 In the Java in-memory implementation, it defines many static variables defined and shared between the interations.
@@ -422,11 +425,11 @@ of the document on a multi-core machine. So, the CRF inference is naivelly paral
 %\end{cases}
 %\]$
 
-\subsection{Entity Detection}
+%\subsection{Entity Detection}
 
 \section{Experiments and Results}
 In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
-we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64G memory.
+we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64GB memory.
 We use CoNLL2000 dataset containing 9000 tagged sentences for learning. 
 This dataset is labeled with 45 POS tags.
 %as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.

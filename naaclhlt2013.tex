@@ -249,22 +249,22 @@ WHERE seg_text ~ pattern
 \caption{CRF training$(z_{1:M})$} \label{alg:CRF training}
 \alginput{Observation set $z_{1:M}$,\\
 convergence criterion $\mathit{Convergence}()$,\\
-start strategy $\mathit{Start}()$,\\
+%start strategy $\mathit{Start}()$,\\
 initialization strategy $\mathit{Initialization}()$,\\
 transition strategy $\mathit{Transition}()$,\\
 finalization strategy $\mathit{Finalization}()$}
 \algoutput{Coefficients $w \in R^N$}
 \algprecond{$iteration = 0$}
 \begin{algorithmic}[1]
-\State $w_{new} \gets \mathit{Start}(z_{1:M})$
+%\State $w_{new} \gets \mathit{Start}(z_{1:M})$
 \Repeat
         \State $w_{old} \gets w_{new}$
         \State $\mathit{state} \gets \mathit{Initialization}(w_{new})$
-\For{$m \in 1..M$} \Comment{Single entry in the observation set}
+\For{$m \in 1..M$} %\Comment{Single entry in the observation set}
 \State $\mathit{state} \gets \mathit{Transition}(\mathit{state}, z_m)$
                 \Comment{Computing gradient and log-likelihood.}
 \EndFor
-\State $w_{new} \gets Finalization(\mathit{state})$ \Comment{Mainly invoke L-BFGS convex solver}
+\State $w_{new} \gets Finalization(\mathit{state})$ \Comment{Invoke L-BFGS convex solver}
 \Until{$Convergence(w_{new}, g_{new}, \mathit{iteration})$}
     \State \Return $w_{new}$
 \end{algorithmic}
@@ -338,10 +338,10 @@ The finalization function invokes the L-BFGS convex solver to get a new coeffice
 LBFGS $\mathit{lbfgs}()$}
 \algoutput{Transition state $state$}
 \begin{algorithmic}[1]
-        \State $\{state.g,state.loglikelihood\} \gets penalty(state.g,state.loglikelihood)$ \Comment{To avoid overfitting, add penalization}
-        \State $\{state.g,state.loglikelihood\}\gets-\{state.g,state.loglikelihood\}$ \Comment{negation for maximization}
+        \State $\{state.g,state.loglikelihood\} \gets penalty(state.g,state.loglikelihood)$ %\Comment{To avoid overfitting, add penalization}
+        \State $\{state.g,state.loglikelihood\}\gets-\{state.g,state.loglikelihood\}$ %\Comment{negation for maximization}
         \State LBFGS instance($state)$ \Comment{initialize the L-BFGS instance with previous state}
-        \State instance.$lbfgs()$ \Comment{invoke the L-BFGS convex solver}
+        \State instance.$lbfgs()$ \Comment{invoke the L-BFGS solver}
         \State instance.save\_state$(state)$ \Comment{save updated variables to the state for next iteration}
         \State \Return $state$
 \end{algorithmic}
@@ -428,10 +428,10 @@ of the document on a multi-core machine. So, the CRF inference is naively parall
 \section{Experiments and Results}
 In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
 we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64GB memory.
-We use CoNLL2000 dataset containing 9000 tagged sentences for learning. 
+We use CoNLL2000 dataset containing 8936 tagged sentences for learning. 
 This dataset is labeled with 45 POS tags.
 %as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
-To evaluate the inference performance, we extracted 1 million sentences from the New York Times dataset. 
+To evaluate the inference performance, we extracted 1.2 million sentences from the New York Times dataset. 
 %news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 In Figure ~\ref{fig:crftrain} and Figure ~\ref{fig:crftest} we show the algorithm is sublinear and improves with an increase in the number of segments.
 Our POS implementation acheives $.9715$ accuracy, this is consitant with the state of the art \cite{Manning:2011:PT9:1964799.1964816}.

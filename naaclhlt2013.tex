@@ -33,7 +33,8 @@
 		numbersep=1em,                  % how far the line-numbers are from the code
 		basewidth=0.52em,
 		tabsize=4,  		% sets default tabsize to 2 spaces
-		xleftmargin=\leftmargini
+		xleftmargin=\leftmargin,
+		literate={~} {$\sim$}{1} 
       }
 \renewcommand*\thelstnumber{\the\value{lstnumber}:}
 % END lstlisting environments

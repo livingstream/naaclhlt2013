@@ -133,7 +133,7 @@ implement and execute
 conditional random fields. 
 We materialize  single and two-state features to avoid feature re-computation for the same token.  
 As far as we know, MADText is the first toolkit for statistical text analysis in relational database management systems.  
-In the application level, we can support part-of-speech tagging(POS) and  named entity resolution(NER) tasks.  
+In the application level, we can support part-of-speech tagging (POS) and  named entity resolution (NER) tasks\footnote{Due to space limitation we only discuss POS tagging.}.  
 We show that our package is linearly scalable and outperform the state of art packages by caching and avoiding costly re-computation.
 We enable statistical text analysis in parallel databases using linear chain conditional random fields, a
 popular statistical method that enables
@@ -148,7 +148,7 @@ Feng's work \cite{Feng:2012:TUA:2213836.2213874}.
 The paper points out that most of the machine learning algorithms can be expressed through
 a unified architectures in RDBMs.
 Essentially, the majority of machine learning algorithms can be reduced to a maximum likelihood objective function. % Multiple runs
-The gradient vector and log likelihood can be calculated in parallel using user-defined aggregates supported in most of the RDBMS.
+The gradient vector and log likelihood can be calculated in parallel using user-defined aggregates supported in most of the RDBMs.
 %User defined aggregates is MapReduce like framework to do parallel processing.
 It also defines a driver function that manages the multi-pass optimization process until convergence criterion is met.
 
@@ -183,7 +183,7 @@ In practice, conditional random fields are approved to achieve the state of art 
 \label{fig:systemarch}
 \end{figure}
 
-In Figure \ref{fig:systemarch} we show the system architecture for MADText~\footnote{Information on the MABLib process is available at http://madlib.net}. 
+In Figure \ref{fig:systemarch} we show the system architecture for MADText~\footnote{Information on the MABLib library is available at http://madlib.net}. 
 The top box contains the shows  the pipeline of the training phase. 
 The second box shows the operational pipeline for the inference phase.
 In the following sections, we describe each portion of the pipeline.
@@ -222,7 +222,7 @@ For example, we compute features for each distinct token and avoid re-computing 
 
 In Figure~\ref{fig:edgefeatures} and Figure~\ref{fig:regexfeatures} we show how to extract edge
 and regex features, respectively.
-Figure~\ref{fig:edgefeatures} extracts adjacent labels from sentences and stores them in an array for further processing.
+Figure~\ref{fig:edgefeatures} extracts adjacent labels from sentences and stores them in an array.
 Figure~\ref{fig:regexfeatures} shows a query that selects all the sentences that satisfies any 
 of the regular expressions present in the table `regextable'.
 
@@ -295,8 +295,8 @@ Following we describe these functions.
 %, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
 
 
-In line~\ref{algo:line:traininit} or Algorithm~\ref{algo:crftraining} the $\mathit{Initialization}$ creates a `state' object in the database.
-The state object contains a coefficient ($w$), gradient ($\nabla$) and log-likelihood ($\mathcal{L}$) variables.
+In line~\ref{algo:line:traininit} of Algorithm~\ref{algo:crftraining} the $\mathit{Initialization}$ function creates a `state' object in the database.
+This object contains a coefficient ($w$), gradient ($\nabla$) and log-likelihood ($\mathcal{L}$) variables.
 This state is loaded (line~\ref{algo:line:trainload}) and saved (line~\ref{algo:line:trainsave}) between iterations.
 We compute the gradient and log-likelihood of each segment in parallel (line~\ref{algo:line:trainmap})  much like a Map function.
 Then line~\ref{algo:line:trainreduce} computes the new coefficients much like a reduce function.
@@ -387,12 +387,12 @@ The finalization function invokes the L-BFGS convex solver to get a new coeffici
 Limited-memory BFGS (L-BFGS), a variation of the Broyden-Fletcher-Goldfarb-Shanno (BFGS)
 algorithm is a leading method for large scale non-constraint convex optimization method.
 We translate an in-memory Java implementation~\cite{morales2000automatic} to a C++ in-database implementation.
-In the in-memory implementation, static variables are defined to pass information to the next iteration.
-However we need to save these variables using a database state object instead of static variables
- for a in-database implementation.
+%In the in-memory implementation, static variables are defined to pass information to the next iteration.
+%However we need to save these variables using a database state object instead of static variables
+% for a in-database implementation.
 %Eigen vector and Eigen matrix are used instead of the one dimensional and two-dimensional arrays.
 %In the Java in-memory implementation, it defines many static variables defined and shared between iterations.
-However, in the MADLib implementation, we define these variables in the state object.
+%However, in the MADLib implementation, we define these variables in the state object.
 Before each iteration of L-BFGS optimization, we need to initialize the L-BFGS with the current state object. 
 At the end of each iteration, we need to dump the updated variables to the database state for next iteration.
  Eigen vectors and Eigen matrices are used instead of the one dimensional and two-dimensional arrays to boost
@@ -508,9 +508,8 @@ for entity resolution in RDBMS.
 
 
 \section*{Acknowledgments}
-XXXXXXX is funded by a National
-Science Foundation Graduate Research Fellowship under Grant No. XXXXXXX %%DGE-0802270.
-This work was supported by a gift from a database company. %EMC Greenplum.
+X is funded by a NSF GRF under Grant No. X. %%DGE-0802270.
+This work was supported by a gift from a DB company. %EMC Greenplum.
 
 \bibliographystyle{naaclhlt2013}
 %\bibliographystyle{plain}

@@ -433,6 +433,8 @@ This dataset is labeled with 45 POS tags.
 %as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
 To evaluate the inference performance, we extracted 1 million sentences from the New York Times dataset. 
 %news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
+In Figure ~\ref{fig:crftrain} and Figure ~\ref{fig:crftest} we show the algorithm is sublinear and improves with an increase in the number of segments.
+Our POS implementation acheives $.9715$ accuracy, this is consitant with the state of the art \cite{Manning:2011:PT9:1964799.1964816}.
 
 \begin{figure}
 \centering
@@ -445,7 +447,7 @@ To evaluate the inference performance, we extracted 1 million sentences from the
 \centering
 \includegraphics[height=11em]{testing}
 \caption{Linear-chain CRF inference scalability}
-\label{fig:crftrain}
+\label{fig:crftest}
 \end{figure}
 
 %\section{User Case: Tweet Analysis}
@@ -463,6 +465,7 @@ The RDBMs and SQL interface enable functionalities desired by many
 applications such as real-time training and real-time inference, over
 structured and unstructured data.
 
+% TODO We plan on implementing...
 
 
 

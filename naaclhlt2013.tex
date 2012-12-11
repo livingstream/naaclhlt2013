@@ -428,10 +428,10 @@ of the document on a multi-core machine. So, the CRF inference is naively parall
 \section{Experiments and Results}
 In order to evaluate the performance and scalability of the linear-chain CRF learning and inference on Greenplum,
 we conduct experiments on various data sizes over on a 32-core machine with 2T hard drive and 64GB memory.
-We use CoNLL2000 dataset containing 9000 tagged sentences for learning. 
+We use CoNLL2000 dataset containing 8936 tagged sentences for learning. 
 This dataset is labeled with 45 POS tags.
 %as the tag set. We split the dataset into 6 parts containing 1k, 2k, 4k, 6k, 8k, 9k sentences.
-To evaluate the inference performance, we extracted 1 million sentences from the New York Times dataset. 
+To evaluate the inference performance, we extracted 1.2 million sentences from the New York Times dataset. 
 %news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 
 \begin{figure}

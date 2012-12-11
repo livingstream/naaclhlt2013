@@ -246,28 +246,30 @@ WHERE seg_text ~ pattern
 \label{fig:regexfeatures}
 \end{figure}
 
+
+
 \subsection{Parallel Linear-chain CRF Training}
 \begin{algorithm} 
 \caption{CRF training$(z_{1:M})$} \label{alg:CRF training}
-\alginput{Observation set $z_{1:M}$,\\
-convergence criterion $\mathit{Convergence}()$,\\
+\alginput{$z_{1:M}$, \Comment{Document set}\\
+$\mathit{Convergence}()$, \\
 %start strategy $\mathit{Start}()$,\\
-initialization strategy $\mathit{Initialization}()$,\\
-transition strategy $\mathit{Transition}()$,\\
-finalization strategy $\mathit{Finalization}()$}
+$\mathit{Initialization}()$,\\
+$\mathit{Transition}()$,\\
+$\mathit{Finalization}()$}
 \algoutput{Coefficients $w \in R^N$}
-\algprecond{$iteration = 0$}
+\algprecond{iteration = 0}
 \begin{algorithmic}[1]
 %\State $w_{new} \gets \mathit{Start}(z_{1:M})$
 \Repeat
         \State $w_{old} \gets w_{new}$
-        \State $\mathit{state} \gets \mathit{Initialization}(w_{new})$
+        \State state $\gets \mathit{Initialization}(w_{new})$
 \For{$m \in 1..M$} %\Comment{Single entry in the observation set}
-\State $\mathit{state} \gets \mathit{Transition}(\mathit{state}, z_m)$
-                \Comment{Computing gradient and log-likelihood.}
+\State state $\gets \mathit{Transition}($state$, z_m)$
+                %\Comment{Computing gradient and log-likelihood.}
 \EndFor
-\State $w_{new} \gets Finalization(\mathit{state})$ \Comment{Invoke L-BFGS convex solver}
-\Until{$Convergence(w_{new}, g_{new}, \mathit{iteration})$}
+\State $w_{new} \gets Finalization($state$)$ %\Comment{Invoke L-BFGS convex solver}
+\Until{$Convergence(w_{new}, g_{new}, iteration)$}
     \State \Return $w_{new}$
 \end{algorithmic}
 \label{algo:crftraining}
@@ -278,7 +280,7 @@ In Algorithm~\ref{algo:crftraining} we show the parallel CRF training strategy, 
 %We provide above the algorithm of parallel CRF training strategy, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
 
 \paragraph{Parallelism.}
-The outer loop is inherently sequential over multiple iterations.
+The outer loop is sequential over multiple iterations.
 The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
 The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
 Simple model averaging are used to merge two states.
@@ -304,22 +306,25 @@ The algorithms will be discussed in the following sections.
 
 \begin{algorithm}
 \caption{transition-lbfgs$(\mathit{state}, z_m)$} \label{alg:transition-lbfgs}
-\alginput{Transition state $\mathit{state}$,\\
-observation entry $z_m$,\\
-gradient function $\mathit{Gradient}()$}
-\algoutput{Transition state $\mathit{state}$}
+\alginput{state, \Comment{Transition state}\\
+$z_m$, \Comment{A Document}\\
+$\mathit{Gradient}()$  }
+\algoutput{state  }
 \begin{algorithmic}[1]
-    \State $\{state.g,state.loglikelihood\} \gets \mathit{Gradient}(\mathit{state}, z_m)$
-        \Comment{using forward-backward algorithm to calculate gradient and loglikelihood}
-    \State $\mathit{state}.num\_rows \gets \mathit{state}.num\_rows + 1$
-    \State \Return $\mathit{state}$
+    \State $\{$state.$\nabla$, state$.\mathcal{L}\} \gets \mathit{Gradient}($state$, z_m)$
+        %\Comment{using forward-backward algorithm to calculate gradient and loglikelihood}
+    \State state$.num\_rows \gets $state$.num\_rows + 1$
+    \State \Return state
 \end{algorithmic}
 \label{algo:crftransition}
 \end{algorithm}
 
 
 \paragraph{Merge strategies.}
-The merge function sums the gradient and log-likelihood over all training documents.
+The merge function takes two states and sums their gradient and log-likelihood.
+%The merge function sums the gradient and log-likelihood over all training documents.
+
+
 %\begin{algorithm}
 %\caption{merge-lbfgs$(\mathit{state_1}, \mathit{state_2})$} \label{alg:merge-lbfgs}
 %\alginput{Transition state $\mathit{state_1}$,\\
@@ -334,19 +339,18 @@ The merge function sums the gradient and log-likelihood over all training docume
 
 
 \paragraph{Finalization strategy.}
-The finalization function invokes the L-BFGS convex solver to get a new coefficent vector.\\
+The finalization function invokes the L-BFGS convex solver to get a new coefficient vector.\\
 \begin{algorithm}
-\caption{finalization-lbfgs$(state)$} \label{alg:CRF training}
-\alginput{Transition state $state$,\\
-LBFGS $\mathit{lbfgs}()$}
-\algoutput{Transition state $state$}
+\caption{finalization-lbfgs(state)} \label{alg:CRF training}
+\alginput{state,\\
+ $\mathit{LBFGS}$() \Comment{Convex optimization solver}}
+\algoutput{state}
 \begin{algorithmic}[1]
-        \State $\{state.g,state.loglikelihood\} \gets penalty(state.g,state.loglikelihood)$ %\Comment{To avoid overfitting, add penalization}
-        \State $\{state.g,state.loglikelihood\}\gets-\{state.g,state.loglikelihood\}$ %\Comment{negation for maximization}
-        \State LBFGS instance($state)$ \Comment{initialize the L-BFGS instance with previous state}
-        \State instance.$lbfgs()$ \Comment{invoke the L-BFGS solver}
-        \State instance.save\_state$(state)$ \Comment{save updated variables to the state for next iteration}
-        \State \Return $state$
+        \State $\{$state.$\nabla$, state.$\mathcal{L}\} \gets $penalty(state.$\nabla$, state.$\mathcal{L}$) %\Comment{To avoid overfitting, add penalization}
+        \State instance $\gets \mathit{LBFGS}$.init(state) %\Comment{initialize the L-BFGS instance with previous state}
+        \State instance.lbfgs() \Comment{invoke the L-BFGS solver}
+        \State state $\gets$ instance.state \Comment{Get Updated state}
+        \State \Return state
 \end{algorithmic}
 \label{algo:crffinal}
 \end{algorithm}

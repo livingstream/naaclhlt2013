@@ -94,12 +94,13 @@ This module is a part of MADLib, an open source library for scalable in-database
 %MapReduce systems e.g. Google's MapReduce, Apache Hadoop have gain more and more popularity since it was invented.
 %All big companies are running hundreds of MapReduce jobs each day and each jobs contains terabytes of data.
 %These data can be structured data such as transaction data and unstructured data such as natural text data. 
-Traditional business intelligence has to pull data from databases into other massive 
-data warehouses (OLAP) to analyze the data. 
-The typical data movement process includes moving data from the database for use in other external 
-data analysis tools, and then write the results back into database.
-This movement process is expensive and minimization of data movement is a huge incentive for the datastore 
-to be the same location as the analytic engine.
+Traditional business intelligence pulls content from databases into other massive 
+data warehouses to analyze the data. 
+The typical ``data movement process'' involves moving information from the database for 
+analysis using external tools and storing the final product back into the database.
+This movement process is time consuming and prohibitive for interactive analytics.
+Minimizing the movement of data is a huge incentive for businesses and researchers.
+One way to acheive this is for the datastore to be in the same location as the analytic engine.
 %This is especially true for large parallel systems \cite{ananthanarayanan2011disk}.
 %is the place for data and also parallel database has the massive parallel processing engine. 
 %So besides the data accounting functionality of 
@@ -109,8 +110,11 @@ to be the same location as the analytic engine.
 
 Newer parallel processing relational databases can leverage more nodes and cores to handle large-scale datasets
  \cite{DeWitt:1992:PDS:129888.129894}. 
-Motivated by these arguments, database researchers and database vendors are trying to make these practical,
-investing in the ventures such as the MADLib project started 2010(two citations). 
+%Some of these databases include AsterData, Greenplum, voltdb, 
+Database researchers and vendors are capitalizing on the increase in database cores and nodes
+and investing in open source libraries that ta
+%Motivated by these arguments, database researchers and database vendors are trying to make these practical,
+%investing in the ventures such as the MADLib project \cite {Cohen:2009:MSN:1687553.1687576,Hellerstein:2012:MAL:2367502.2367510}. 
 MADLib is an open source library for scalable in-database analytics.
 It provides parallel implementation of machine learning algorithms.
 
@@ -135,7 +139,7 @@ real data \cite{DBLP:conf/icml/LaffertyMP01}.
 We are able to use the facilities provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
 
 \section{Related Work}
-Our work is inspired by MADLib(cite 2020 paper), but implementation has a lot in common with Feng's work \cite{Feng:2012:TUA:2213836.2213874}.
+Our work is inspired by MADLib \cite{Hellerstein:2012:MAL:2367502.2367510}, but implementation has a lot in common with Feng's work \cite{Feng:2012:TUA:2213836.2213874}.
 The paper points out that most of the machine learning algorithms can be expressed through
 a unified architectures in RDBMs.
 Essentially, the majority of machine learning algorithms can be reduced to a maximum likelihood objective function. % Multiple runs
@@ -176,7 +180,7 @@ In practice, conditional random fields are approved to achieve the state of art 
 In Figure \ref{fig:systemarch} we show the system architecture for MADText~\footnote{Information on the MABLib process is available at http://madlib.net}. 
 The top box contains the shows  the pipeline of the training phase. 
 The second box shows the operational pipeline for the inference phase.
-n the following sections we describe each portion of the pipeline.
+In the following sections, we describe each portion of the pipeline.
 
 \subsection{In-database Implementation}
 We use declarative SQL statements to extract all features from text.
@@ -206,7 +210,7 @@ There are many advantages for extracting features using SQLs.
 %Compared with procedure language, SQL is much more easier to understand. 
 The SQL statements hide a lot of the complexity  present  in the actual operation.
 It turns out that each type of feature can be extracted out using exactly one SQL statement, 
-making the feature extraction code extremely succinct and implicit parallelism.  
+making the feature extraction code extremely succinct.  
 Secondly, SQLs statements are naively parallel due to the set semantics supported by relational DBMS's.
 For example, we compute features for each distinct token and avoid re-computing the features for repeated tokens.  
 In Figure~\ref{fig:edgefeatures} and Figure~\ref{fig:regexfeatures} we show how to extract edge
@@ -236,26 +240,6 @@ WHERE seg_text ~ pattern
 \caption{Query for extracting regex features}
 \label{fig:regexfeatures}
 \end{figure}
-
-
-\begin{figure}
-\centering
-\begin{lstlisting}[language=SQL,breaklines=true]
-INSERT INTO rtbl(start_pos,doc_id,feature)
-SELECT start_pos, doc_id, 
-       array_cat(fset.feature, 
-   ARRAY[f_index,start_pos, 
-   CASE 
-       WHEN tmp1_feature.feature=fset.feature 
-       THEN 1
-   ELSE 0 END] )
-FROM   tmp1_feature, featureset fset
-WHERE  tmp1_feature.f_name = fset.f_name AND 
-       fset.f_name <> 'E.';
-\end{lstlisting}
-\caption{Query for extracting regex features}
-\end{figure}
-
 
 \subsection{Parallel Linear-chain CRF Training}
 \begin{algorithm} 

@@ -239,8 +239,8 @@ WHERE  doc1.doc_id = doc2.doc_id AND
 \begin{lstlisting}[language=SQL, breaklines=true]
 SELECT start_pos, doc_id, 'R_' || name, 
        ARRAY[-1, label]
-FROM  regextbl, segmenttbl
-WHERE seg_text ~ pattern
+FROM  regextbl r, segmenttbl s
+WHERE s.seg_text ~ r.pattern
 \end{lstlisting}
 \caption{Query for extracting regex features}
 \label{fig:regexfeatures}
@@ -276,8 +276,9 @@ $\mathit{Finalization}()$}
 \end{algorithm}
 
 \paragraph{Programming Model.}
-In Algorithm~\ref{algo:crftraining} we show the parallel CRF training strategy, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
-%We provide above the algorithm of parallel CRF training strategy, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
+In Algorithm~\ref{algo:crftraining} we show the parallel CRF training strategy.
+The algorithm is expressed as an user-defined aggregate.
+%, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
 
 \paragraph{Parallelism.}
 The outer loop is sequential over multiple iterations.
@@ -471,6 +472,9 @@ in a system.
 The RDBMs and SQL interface enable functionalities desired by many 
 applications such as real-time training and real-time inference, over
 structured and unstructured data.
+In the future we plan to develop more text analytic functions 
+such as parallel Markov Chain Monte Carlo sampling 
+for entity resolution.
 
 % TODO We plan on implementing...
 

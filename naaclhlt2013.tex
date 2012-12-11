@@ -142,7 +142,8 @@ real data \cite{DBLP:conf/icml/LaffertyMP01}.
 We are able to use the facilities provided by a RDMBS to achieve the parallel CRF learning and inference for NLP tasks.
 
 \section{Related Work}
-Our work is inspired by MADLib \cite{Hellerstein:2012:MAL:2367502.2367510}, but implementation has a lot in common with Feng's work \cite{Feng:2012:TUA:2213836.2213874}.
+Our work is inspired by MADLib \cite{Hellerstein:2012:MAL:2367502.2367510} and the implementation has a lot in common with 
+Feng's work \cite{Feng:2012:TUA:2213836.2213874}.
 The paper points out that most of the machine learning algorithms can be expressed through
 a unified architectures in RDBMs.
 Essentially, the majority of machine learning algorithms can be reduced to a maximum likelihood objective function. % Multiple runs
@@ -165,7 +166,8 @@ GATE, PurpleSox and SystemT
 
 \section{Linear-chain CRF for IE in RDBMS}
 Part-of-speech tagging (POS) is the process of assigning 
-a part of speech to each word in a sentence. POS has been widely used in information retrieval, text to speech and dimension reduction. 
+a part of speech to each word in a sentence. 
+POS has been widely used in information retrieval, text to speech, dimension reduction and in several other areas. 
 %There are two distinct methods for 
 %POS task, rule-based and stochastic.
 %In rule-based method, large collection of rules are defined to indentify the tag. Stochastic methods are based on 
@@ -297,7 +299,8 @@ The finalization function invokes the L-BFGS convex solver to get a new solution
 
 \paragraph{Transition strategies.}
 This function contains the logic of computing the gradient and log-likelihood for each tuple using the forward-backward
-algorithm. The algorithms will be discussed in the following sections.
+algorithm.
+The algorithms will be discussed in the following sections.
 
 \begin{algorithm}
 \caption{transition-lbfgs$(\mathit{state}, z_m)$} \label{alg:transition-lbfgs}
@@ -316,7 +319,7 @@ gradient function $\mathit{Gradient}()$}
 
 
 \paragraph{Merge strategies.}
-The merge function simply sums the gradient and log-likelihood over all training documents
+The merge function sums the gradient and log-likelihood over all training documents.
 %\begin{algorithm}
 %\caption{merge-lbfgs$(\mathit{state_1}, \mathit{state_2})$} \label{alg:merge-lbfgs}
 %\alginput{Transition state $\mathit{state_1}$,\\
@@ -434,7 +437,7 @@ This dataset is labeled with 45 POS tags.
 To evaluate the inference performance, we extracted 1.2 million sentences from the New York Times dataset. 
 %news and truncated the inference datasets into 5 dataset contains 100k, 200k, 400k, 600k, 800k, 1000k sentences.
 In Figure ~\ref{fig:crftrain} and Figure ~\ref{fig:crftest} we show the algorithm is sublinear and improves with an increase in the number of segments.
-Our POS implementation acheives $.9715$ accuracy, this is consitant with the state of the art \cite{Manning:2011:PT9:1964799.1964816}.
+Our POS implementation achieves $.9715$ accuracy, this is consistent with the state of the art \cite{Manning:2011:PT9:1964799.1964816}.
 
 \begin{figure}
 \centering
@@ -471,8 +474,8 @@ structured and unstructured data.
 
 \section*{Acknowledgments}
 XXXXXXX is funded by a National
-Science Foundation Graduate Research Fellowship under Grant No. XXXXXXX%%DGE-0802270.
-This work was supported by a gift from a database company.%EMC Greenplum.
+Science Foundation Graduate Research Fellowship under Grant No. XXXXXXX %%DGE-0802270.
+This work was supported by a gift from a database company. %EMC Greenplum.
 
 \bibliographystyle{naaclhlt2013}
 %\bibliographystyle{plain}

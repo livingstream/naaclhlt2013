@@ -100,7 +100,7 @@ The typical ``data movement process'' involves moving information from the datab
 analysis using external tools and storing the final product back into the database.
 This movement process is time consuming and prohibitive for interactive analytics.
 Minimizing the movement of data is a huge incentive for businesses and researchers.
-One way to acheive this is for the datastore to be in the same location as the analytic engine.
+One way to achieve this is for the datastore to be in the same location as the analytic engine.
 %This is especially true for large parallel systems \cite{ananthanarayanan2011disk}.
 %is the place for data and also parallel database has the massive parallel processing engine. 
 %So besides the data accounting functionality of 
@@ -108,11 +108,14 @@ One way to acheive this is for the datastore to be in the same location as the a
 %Recently, researchers have been pushing in-database analytic functionality to be integrated 
 %into RDBMs to enable a deep insights into the data.
 
+For many companies, Hadoop is a solution to their big data problems \cite{DBLP:journals/corr/abs-1209-2191}. 
+However, many companies rely on the guarantees of RDBMs for their business needs and would like to 
+perform more sophisticated analytics.
 Newer parallel processing relational databases can leverage more nodes and cores to handle large-scale datasets
- \cite{DeWitt:1992:PDS:129888.129894}. 
+ \cite{DeWitt:1992:PDS:129888.129894,Stonebraker:2012:NON:2366316.2366319}. 
 %Some of these databases include AsterData, Greenplum, voltdb, 
 Database researchers and vendors are capitalizing on the increase in database cores and nodes
-and investing in open source libraries that ta
+and investing in open source ventures such as the MADLib project \cite {Cohen:2009:MSN:1687553.1687576,Hellerstein:2012:MAL:2367502.2367510}. 
 %Motivated by these arguments, database researchers and database vendors are trying to make these practical,
 %investing in the ventures such as the MADLib project \cite {Cohen:2009:MSN:1687553.1687576,Hellerstein:2012:MAL:2367502.2367510}. 
 MADLib is an open source library for scalable in-database analytics.
@@ -126,8 +129,8 @@ Companies are analyzing text data to discover the popularity of specific topic a
 In this paper, we motivate the use of text analytics inside the database.
 We show that we can use the declarative SQL interface and database set oriented execution model instead of procedural code to 
 implement and execute 
-conditional random field. 
-We materialize  store single and two-state features to avoid feature re-computation for the same token.  
+conditional random fields. 
+We materialize  single and two-state features to avoid feature re-computation for the same token.  
 As far as we know, MADText is the first toolkit for statistical text analysis in relational database management systems.  
 In the application level, we can support part-of-speech tagging(POS) and  named entity resolution(NER) tasks.  
 We show that our package is linearly scalable and outperform the state of art packages by caching and avoiding costly re-computation.

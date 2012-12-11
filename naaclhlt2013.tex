@@ -262,16 +262,20 @@ $\mathit{Finalization}()$}
 \algprecond{iteration = 0}
 \begin{algorithmic}[1]
 %\State $w_{new} \gets \mathit{Start}(z_{1:M})$
+\State $\mathit{Initialization}(State)$
 \Repeat
-        \State $w_{old} \gets w_{new}$
-        \State state $\gets \mathit{Initialization}(w_{new})$
-\For{$m \in 1..M$} %\Comment{Single entry in the observation set}
+				\State state $\gets \mathit{LoadState}$()
+				%\State state $\gets$ state$_{new}$
+        %\State $w_{old} \gets w_{new}$
+        %\State state $\gets \mathit{Initialization}(w_{new})$
+\ForAll{$m \in 1..M$} %\Comment{Single entry in the observation set}
 \State state $\gets \mathit{Transition}($state$, z_m)$
                 %\Comment{Computing gradient and log-likelihood.}
 \EndFor
-\State $w_{new} \gets Finalization($state$)$ %\Comment{Invoke L-BFGS convex solver}
-\Until{$Convergence(w_{new}, g_{new}, iteration)$}
-    \State \Return $w_{new}$
+\State state $ \gets Finalization($state$)$ %\Comment{Invoke L-BFGS convex solver}
+\State $\mathit{WriteState(state)}$
+\Until{$Convergence($state$, iteration)$}
+    \State \Return state$.{w}$ 
 \end{algorithmic}
 \label{algo:crftraining}
 \end{algorithm}
@@ -279,9 +283,16 @@ $\mathit{Finalization}()$}
 \paragraph{Programming Model.}
 In Algorithm~\ref{algo:crftraining} we show the parallel CRF training strategy.
 The algorithm is expressed as an user-defined aggregate.
+User-defined aggregates are composed of three parts: a transition function (Algorithms~\ref{algo:crftransition}), 
+a merge function\footnote{The merge function takes two states and sums their gradient and log-likelihood.},
+and a finalization function (Algorithm~\ref{algo:crffinal}).
+Following we describe these functions.
 %, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
 
-\paragraph{Parallelism.}
+
+The algorithm loads the current state 
+
+%\paragraph{Parallelism.}
 The outer loop is sequential over multiple iterations.
 The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
 The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
@@ -322,8 +333,8 @@ $\mathit{Gradient}()$  }
 \end{algorithm}
 
 
-\paragraph{Merge strategies.}
-The merge function takes two states and sums their gradient and log-likelihood.
+%\paragraph{Merge strategies.}
+%The merge function takes two states and sums their gradient and log-likelihood.
 %The merge function sums the gradient and log-likelihood over all training documents.
 
 
@@ -351,8 +362,7 @@ The finalization function invokes the L-BFGS convex solver to get a new coeffici
         \State $\{$state.$\nabla$, state.$\mathcal{L}\} \gets $penalty(state.$\nabla$, state.$\mathcal{L}$) %\Comment{To avoid overfitting, add penalization}
         \State instance $\gets \mathit{LBFGS}$.init(state) %\Comment{initialize the L-BFGS instance with previous state}
         \State instance.lbfgs() \Comment{invoke the L-BFGS solver}
-        \State state $\gets$ instance.state \Comment{Get Updated state}
-        \State \Return state
+        \State \Return instance.state
 \end{algorithmic}
 \label{algo:crffinal}
 \end{algorithm}

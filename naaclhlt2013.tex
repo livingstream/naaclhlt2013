@@ -219,17 +219,22 @@ It turns out that each type of feature can be extracted out using exactly one SQ
 making the feature extraction code extremely succinct.  
 Secondly, SQLs statements are naively parallel due to the set semantics supported by relational DBMS's.
 For example, we compute features for each distinct token and avoid re-computing the features for repeated tokens.  
+
 In Figure~\ref{fig:edgefeatures} and Figure~\ref{fig:regexfeatures} we show how to extract edge
 and regex features, respectively.
+Figure~\ref{fig:edgefeatures} extracts adjacent labels from sentences and stores them in an array for further processing.
+Figure~\ref{fig:regexfeatures} shows a query that selects all the sentences that satisfies any 
+of the regular expressions present in the table `regextable'.
+
 
 \begin{figure}
 \centering
 \begin{lstlisting}[language=SQL,breaklines=true]
-SELECT doc2.start_pos, doc2.doc_id, 'E.', 
+SELECT doc2.pos, doc2.doc_id, 'E.', 
        ARRAY[doc1.label, doc2.label]
 FROM   segmenttbl doc1, segmenttbl doc2
 WHERE  doc1.doc_id = doc2.doc_id AND 
-       doc1.start_pos+1 = doc2.start_pos
+       doc1.pos + 1 = doc2.pos
 \end{lstlisting}
 \caption{Query for extracting edge features}
 \label{fig:edgefeatures}
@@ -238,7 +243,7 @@ WHERE  doc1.doc_id = doc2.doc_id AND
 \begin{figure}
 \centering
 \begin{lstlisting}[language=SQL, breaklines=true]
-SELECT start_pos, doc_id, 'R_' || name, 
+SELECT start_pos, doc_id, 'R_' || r.name, 
        ARRAY[-1, label]
 FROM  regextbl r, segmenttbl s
 WHERE s.seg_text ~ r.pattern
@@ -381,7 +386,7 @@ The finalization function invokes the L-BFGS convex solver to get a new coeffici
 
 Limited-memory BFGS (L-BFGS), a variation of the Broyden-Fletcher-Goldfarb-Shanno (BFGS)
 algorithm is a leading method for large scale non-constraint convex optimization method.
-We translate the in-memory Java implementation to C++ in-database implementation.
+We translate an in-memory Java implementation~\cite{morales2000automatic} to a C++ in-database implementation.
 Eigen vector and Eigen matrix are used instead of the one dimensional and two-dimensional arrays.
 In the Java in-memory implementation, it defines many static variables defined and shared between iterations.
 However, in the MADLib implementation, we define these variables in the state object.

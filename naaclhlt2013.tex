@@ -262,18 +262,18 @@ $\mathit{Finalization}()$}
 \algprecond{iteration = 0}
 \begin{algorithmic}[1]
 %\State $w_{new} \gets \mathit{Start}(z_{1:M})$
-\State $\mathit{Initialization}(State)$
+\State $\mathit{Initialization}($state$)$ \label{algo:line:traininit}
 \Repeat
-				\State state $\gets \mathit{LoadState}$()
+				\State state $\gets \mathit{LoadState}$() \label{algo:line:trainload}
 				%\State state $\gets$ state$_{new}$
         %\State $w_{old} \gets w_{new}$
         %\State state $\gets \mathit{Initialization}(w_{new})$
-\ForAll{$m \in 1..M$} %\Comment{Single entry in the observation set}
+\ForAll{$m \in 1..M$} \label{algo:line:trainmap} 
 \State state $\gets \mathit{Transition}($state$, z_m)$
                 %\Comment{Computing gradient and log-likelihood.}
 \EndFor
-\State state $ \gets Finalization($state$)$ %\Comment{Invoke L-BFGS convex solver}
-\State $\mathit{WriteState(state)}$
+\State state $ \gets Finalization($state$)$ \label{algo:line:trainreduce} %\Comment{Invoke L-BFGS convex solver}
+\State $\mathit{WriteState(state)}$ \label{algo:line:trainsave}
 \Until{$Convergence($state$, iteration)$}
     \State \Return state$.{w}$ 
 \end{algorithmic}
@@ -290,17 +290,22 @@ Following we describe these functions.
 %, in the fashion of the selected programming model supported by MADLib (mainly user-defined aggregate).
 
 
-The algorithm loads the current state 
+In line~\ref{algo:line:traininit} or Algorithm~\ref{algo:crftraining} the $\mathit{Initialization}$ creates a `state' object in the database.
+The state object contains a coefficient ($w$), gradient ($\nabla$) and log-likelihood ($\mathcal{L}$) variables.
+This state is loaded (line~\ref{algo:line:trainload}) and saved (line~\ref{algo:line:trainsave}) between iterations.
+We compute the gradient and log-likelihood of each segment in parallel (line~\ref{algo:line:trainmap})  much like a Map function.
+Then line~\ref{algo:line:trainreduce} computes the new coefficients much like a reduce function.
+
 
 %\paragraph{Parallelism.}
-The outer loop is sequential over multiple iterations.
-The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
-The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
-Simple model averaging are used to merge two states.
-%A merge function is not explicitly added to the pseudocode for simplicity.
-The finalization function invokes the L-BFGS convex solver to get a new solution. 
-%L-BFGS is sequential, but very fast.
-%Experiments show that the speed-up ration approaches the number of segments configured in the Greenplum database.
+%The outer loop is sequential over multiple iterations.
+%The iteration $n+1$ takes the output of iteration $n$ as input, so on so forth until the stop criterion is satisfied.
+%The inner loop which calculates the gradient and log-likelihood for each document is data-parallel.
+%Simple model averaging are used to merge two states.
+%%A merge function is not explicitly added to the pseudocode for simplicity.
+%The finalization function invokes the L-BFGS convex solver to get a new solution. 
+%%L-BFGS is sequential, but very fast.
+%%Experiments show that the speed-up ration approaches the number of segments configured in the Greenplum database.
 
 %\paragraph{Convergence criterion.}
 %The following convergence criterions are supported.
@@ -313,9 +318,10 @@ The finalization function invokes the L-BFGS convex solver to get a new solution
 %In most cases, zeros are used unless otherwise specified.
 
 \paragraph{Transition strategies.}
-This function contains the logic of computing the gradient and log-likelihood for each tuple using the forward-backward
+Algorithm~\ref{algo:crftransition} contains the logic of computing the gradient and log-likelihood for each tuple using the forward-backward
 algorithm.
-The algorithms will be discussed in the following sections.
+This algorithm is invoked in parallel over many segments and the result of these functions are combined using the merge function.
+%The algorithms will be discussed in the following sections.
 
 \begin{algorithm}
 \caption{transition-lbfgs$(\mathit{state}, z_m)$} \label{alg:transition-lbfgs}

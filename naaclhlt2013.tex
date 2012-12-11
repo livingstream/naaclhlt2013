@@ -375,7 +375,7 @@ The finalization function invokes the L-BFGS convex solver to get a new coeffici
 
 Limited-memory BFGS (L-BFGS), a variation of the Broyden-Fletcher-Goldfarb-Shanno (BFGS)
 algorithm is a leading method for large scale non-constraint convex optimization method.
-We translate the in-memory Java implementation to C++ in-database implementation using Eigen support.
+We translate the in-memory Java implementation to C++ in-database implementation.
 Eigen vector and Eigen matrix are used instead of the one dimensional and two-dimensional arrays.
 In the Java in-memory implementation, it defines many static variables defined and shared between iterations.
 However, in the MADLib implementation, we define these variables in the state object.
